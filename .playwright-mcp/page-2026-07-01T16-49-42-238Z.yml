@@ -1,0 +1,743 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+      - /url: "#start-of-content"
+    - banner [ref=e6]:
+      - heading "Navigation Menu" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - link "Homepage" [ref=e10] [cursor=pointer]:
+          - /url: /
+          - img [ref=e11]
+        - generic [ref=e13]:
+          - navigation "Global" [ref=e16]:
+            - list [ref=e17]:
+              - listitem [ref=e18]:
+                - button "Platform" [ref=e20] [cursor=pointer]:
+                  - text: Platform
+                  - img [ref=e21]
+              - listitem [ref=e23]:
+                - button "Solutions" [ref=e25] [cursor=pointer]:
+                  - text: Solutions
+                  - img [ref=e26]
+              - listitem [ref=e28]:
+                - button "Resources" [ref=e30] [cursor=pointer]:
+                  - text: Resources
+                  - img [ref=e31]
+              - listitem [ref=e33]:
+                - button "Open Source" [ref=e35] [cursor=pointer]:
+                  - text: Open Source
+                  - img [ref=e36]
+              - listitem [ref=e38]:
+                - button "Enterprise" [ref=e40] [cursor=pointer]:
+                  - text: Enterprise
+                  - img [ref=e41]
+              - listitem [ref=e43]:
+                - link "Pricing" [ref=e44] [cursor=pointer]:
+                  - /url: https://github.com/pricing
+                  - generic [ref=e45]: Pricing
+          - generic [ref=e46]:
+            - button "Search or jump to…" [ref=e49] [cursor=pointer]:
+              - img [ref=e51]
+            - link "Sign in" [ref=e54] [cursor=pointer]:
+              - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fis-a-dev%2Fregister
+            - link "Sign up" [ref=e55] [cursor=pointer]:
+              - /url: /signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=is-a-dev%2Fregister
+            - button "Appearance settings" [ref=e58] [cursor=pointer]:
+              - img
+  - main [ref=e62]:
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - generic [ref=e66]:
+          - img [ref=e67]
+          - link "is-a-dev" [ref=e70] [cursor=pointer]:
+            - /url: /is-a-dev
+          - generic [ref=e71]: /
+          - strong [ref=e72]:
+            - link "register" [ref=e73] [cursor=pointer]:
+              - /url: /is-a-dev/register
+          - generic [ref=e74]: Public
+        - generic [ref=e75]:
+          - list:
+            - listitem [ref=e76]:
+              - button "Sponsor is-a-dev/register" [ref=e78] [cursor=pointer]:
+                - generic [ref=e80]:
+                  - img [ref=e81]
+                  - text: Sponsor
+            - listitem [ref=e83]:
+              - link "You must be signed in to change notification settings" [ref=e84] [cursor=pointer]:
+                - /url: /login?return_to=%2Fis-a-dev%2Fregister
+                - img [ref=e85]
+                - text: Notifications
+            - listitem [ref=e87]:
+              - link "Fork 23.7k" [ref=e88] [cursor=pointer]:
+                - /url: /login?return_to=%2Fis-a-dev%2Fregister
+                - img [ref=e89]
+                - text: Fork
+                - generic "23,702" [ref=e91]: 23.7k
+            - listitem [ref=e92]:
+              - link "You must be signed in to star a repository" [ref=e94] [cursor=pointer]:
+                - /url: /login?return_to=%2Fis-a-dev%2Fregister
+                - img [ref=e95]
+                - text: Star
+                - generic "10621 users starred this repository" [ref=e97]: 10.6k
+      - navigation "Repository" [ref=e98]:
+        - list [ref=e99]:
+          - listitem [ref=e100]:
+            - link "Code" [ref=e101] [cursor=pointer]:
+              - /url: /is-a-dev/register
+              - img [ref=e102]
+              - generic [ref=e104]: Code
+          - listitem [ref=e105]:
+            - link "Issues" [ref=e106] [cursor=pointer]:
+              - /url: /is-a-dev/register/issues
+              - img [ref=e107]
+              - generic [ref=e110]: Issues
+          - listitem [ref=e111]:
+            - link "Pull requests 137" [ref=e112] [cursor=pointer]:
+              - /url: /is-a-dev/register/pulls
+              - img [ref=e113]
+              - generic [ref=e115]: Pull requests
+              - generic "137" [ref=e116]
+          - listitem [ref=e117]:
+            - link "Discussions" [ref=e118] [cursor=pointer]:
+              - /url: /is-a-dev/register/discussions
+              - img [ref=e119]
+              - generic [ref=e121]: Discussions
+          - listitem [ref=e122]:
+            - link "Actions" [ref=e123] [cursor=pointer]:
+              - /url: /is-a-dev/register/actions
+              - img [ref=e124]
+              - generic [ref=e126]: Actions
+          - listitem [ref=e127]:
+            - link "Security and quality" [ref=e128] [cursor=pointer]:
+              - /url: /is-a-dev/register/security
+              - img [ref=e129]
+              - generic [ref=e131]: Security and quality
+          - listitem [ref=e132]:
+            - link "Insights" [ref=e133] [cursor=pointer]:
+              - /url: /is-a-dev/register/pulse
+              - img [ref=e134]
+              - generic [ref=e136]: Insights
+    - generic [ref=e149]:
+      - heading "is-a-dev/register" [level=1] [ref=e151]
+      - generic [ref=e152]:
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - button "main branch" [ref=e159] [cursor=pointer]:
+                - generic [ref=e160]:
+                  - generic [ref=e162]:
+                    - img [ref=e164]
+                    - generic [ref=e167]: main
+                  - generic:
+                    - img
+              - generic [ref=e168]:
+                - link "Go to Branches page" [ref=e169] [cursor=pointer]:
+                  - /url: /is-a-dev/register/branches
+                  - img [ref=e170]
+                - link "Go to Tags page" [ref=e172] [cursor=pointer]:
+                  - /url: /is-a-dev/register/tags
+                  - img [ref=e173]
+            - generic [ref=e175]:
+              - generic [ref=e179]:
+                - img [ref=e181]
+                - combobox "Go to file" [ref=e183]
+              - button "Code" [ref=e184] [cursor=pointer]:
+                - generic [ref=e185]:
+                  - generic:
+                    - img
+                  - generic [ref=e186]: Code
+                  - generic:
+                    - img
+          - generic [ref=e187]:
+            - generic [ref=e188]:
+              - heading "Folders and files" [level=2] [ref=e189]
+              - table "Folders and files" [ref=e190]:
+                - rowgroup:
+                  - row "Name Last commit message Last commit date":
+                    - columnheader "Name"
+                    - columnheader "Last commit message":
+                      - generic "Last commit message"
+                    - columnheader "Last commit date":
+                      - generic "Last commit date"
+                - rowgroup [ref=e191]:
+                  - 'row "Latest commit iostpa commits by iostpa Merge pull request #42357 from notamitgamer/main Open commit details success Commit a8f32d0 · Jul 1, 20262 hours ago History 77,963 Commits" [ref=e192]':
+                    - 'cell "Latest commit iostpa commits by iostpa Merge pull request #42357 from notamitgamer/main Open commit details success Commit a8f32d0 · Jul 1, 20262 hours ago History 77,963 Commits" [ref=e193]':
+                      - generic [ref=e194]:
+                        - heading "Latest commit" [level=2] [ref=e195]
+                        - generic [ref=e196]:
+                          - generic [ref=e198]:
+                            - link "iostpa" [ref=e199] [cursor=pointer]:
+                              - /url: /iostpa
+                              - img "iostpa" [ref=e200]
+                            - link "commits by iostpa" [ref=e201] [cursor=pointer]:
+                              - /url: /is-a-dev/register/commits?author=iostpa
+                              - text: iostpa
+                          - generic [ref=e202]:
+                            - generic [ref=e204]:
+                              - link "Merge pull request" [ref=e205] [cursor=pointer]:
+                                - /url: /is-a-dev/register/commit/a8f32d0db69e098e6441d42568cd92bbb31b858e
+                              - link "#42357" [ref=e206] [cursor=pointer]:
+                                - /url: https://github.com/is-a-dev/register/pull/42357
+                              - link "from notamitgamer/main" [ref=e207] [cursor=pointer]:
+                                - /url: /is-a-dev/register/commit/a8f32d0db69e098e6441d42568cd92bbb31b858e
+                            - button "Open commit details" [ref=e208] [cursor=pointer]:
+                              - img [ref=e209]
+                            - button "success" [ref=e211] [cursor=pointer]:
+                              - img [ref=e212]
+                        - generic [ref=e214]:
+                          - generic [ref=e216]:
+                            - link "Commit a8f32d0" [ref=e217] [cursor=pointer]:
+                              - /url: /is-a-dev/register/commit/a8f32d0db69e098e6441d42568cd92bbb31b858e
+                              - text: a8f32d0
+                            - text: ·
+                            - generic "Jul 1, 2026, 17:30 GMT+3" [ref=e218]: Jul 1, 20262 hours ago
+                          - generic [ref=e219]:
+                            - heading "History" [level=2] [ref=e220]
+                            - link "77,963 Commits" [ref=e221] [cursor=pointer]:
+                              - /url: /is-a-dev/register/commits/main/
+                              - generic [ref=e222]:
+                                - generic:
+                                  - img
+                                - generic [ref=e223]: 77,963 Commits
+                  - 'row ".github, (Directory) Merge pull request #39917 from is-a-dev/ci-actions-update Jun 6, 2026last month" [ref=e224]':
+                    - cell ".github, (Directory)" [ref=e225]:
+                      - generic [ref=e226]:
+                        - img [ref=e227]
+                        - link ".github, (Directory)" [ref=e232] [cursor=pointer]:
+                          - /url: /is-a-dev/register/tree/main/.github
+                          - text: .github
+                    - 'cell "Merge pull request #39917 from is-a-dev/ci-actions-update" [ref=e233]':
+                      - generic [ref=e235]:
+                        - link "Merge pull request" [ref=e236] [cursor=pointer]:
+                          - /url: /is-a-dev/register/commit/28762a93108ac663abd58bbb3c357a190b1baca0
+                        - link "#39917" [ref=e237] [cursor=pointer]:
+                          - /url: https://github.com/is-a-dev/register/pull/39917
+                        - link "from is-a-dev/ci-actions-update" [ref=e238] [cursor=pointer]:
+                          - /url: /is-a-dev/register/commit/28762a93108ac663abd58bbb3c357a190b1baca0
+                    - cell "Jun 6, 2026last month" [ref=e239]:
+                      - generic [ref=e240]: Jun 6, 2026last month
+                  - row "domains, (Directory) algolia verfication. Jul 1, 20262 hours ago" [ref=e241]:
+                    - cell "domains, (Directory)" [ref=e242]:
+                      - generic [ref=e243]:
+                        - img [ref=e244]
+                        - link "domains, (Directory)" [ref=e249] [cursor=pointer]:
+                          - /url: /is-a-dev/register/tree/main/domains
+                          - text: domains
+                    - cell "algolia verfication." [ref=e250]:
+                      - link "algolia verfication." [ref=e253] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/5d1668dc5c37663ab1e3d4719f3ae7c50baaa57a
+                    - cell "Jul 1, 20262 hours ago" [ref=e254]:
+                      - generic [ref=e255]: Jul 1, 20262 hours ago
+                  - row "media, (Directory) upload octoverse 2025 assets Oct 29, 20259 months ago" [ref=e256]:
+                    - cell "media, (Directory)" [ref=e257]:
+                      - generic [ref=e258]:
+                        - img [ref=e259]
+                        - link "media, (Directory)" [ref=e264] [cursor=pointer]:
+                          - /url: /is-a-dev/register/tree/main/media
+                          - text: media
+                    - cell "upload octoverse 2025 assets" [ref=e265]:
+                      - link "upload octoverse 2025 assets" [ref=e268] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/f9a824b4e7340b9275ef7aa3f45a2ed546a0a010
+                    - cell "Oct 29, 20259 months ago" [ref=e269]:
+                      - generic [ref=e270]: Oct 29, 20259 months ago
+                  - row "tests, (Directory) Add 'nested' and 'record' to blockedFields array Mar 26, 20264 months ago" [ref=e271]:
+                    - cell "tests, (Directory)" [ref=e272]:
+                      - generic [ref=e273]:
+                        - img [ref=e274]
+                        - link "tests, (Directory)" [ref=e279] [cursor=pointer]:
+                          - /url: /is-a-dev/register/tree/main/tests
+                          - text: tests
+                    - cell "Add 'nested' and 'record' to blockedFields array" [ref=e280]:
+                      - link "Add 'nested' and 'record' to blockedFields array" [ref=e283] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/441c5b41967c33e1f00ee0cf799ccab56fcf5642
+                    - cell "Mar 26, 20264 months ago" [ref=e284]:
+                      - generic [ref=e285]: Mar 26, 20264 months ago
+                  - row "util, (Directory) disallow cname trycloudflare.com Jun 19, 20262 weeks ago" [ref=e286]:
+                    - cell "util, (Directory)" [ref=e287]:
+                      - generic [ref=e288]:
+                        - img [ref=e289]
+                        - link "util, (Directory)" [ref=e294] [cursor=pointer]:
+                          - /url: /is-a-dev/register/tree/main/util
+                          - text: util
+                    - cell "disallow cname trycloudflare.com" [ref=e295]:
+                      - link "disallow cname trycloudflare.com" [ref=e298] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/4347fbac6d748af96811eec2b84f2ade3cd5c17f
+                    - cell "Jun 19, 20262 weeks ago" [ref=e299]:
+                      - generic [ref=e300]: Jun 19, 20262 weeks ago
+                  - row ".gitignore, (File) Update .gitignore May 7, 2025last year" [ref=e301]:
+                    - cell ".gitignore, (File)" [ref=e302]:
+                      - generic [ref=e303]:
+                        - img [ref=e304]
+                        - link ".gitignore, (File)" [ref=e309] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/.gitignore
+                          - text: .gitignore
+                    - cell "Update .gitignore" [ref=e310]:
+                      - link "Update .gitignore" [ref=e313] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/c41dcaa0d5085565dc93fabc80af1832035c1cda
+                    - cell "May 7, 2025last year" [ref=e314]:
+                      - generic [ref=e315]: May 7, 2025last year
+                  - row "CODE_OF_CONDUCT.md, (File) Update CODE_OF_CONDUCT.md Jan 10, 2025last year" [ref=e316]:
+                    - cell "CODE_OF_CONDUCT.md, (File)" [ref=e317]:
+                      - generic [ref=e318]:
+                        - img [ref=e319]
+                        - link "CODE_OF_CONDUCT.md, (File)" [ref=e324] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/CODE_OF_CONDUCT.md
+                          - text: CODE_OF_CONDUCT.md
+                    - cell "Update CODE_OF_CONDUCT.md" [ref=e325]:
+                      - link "Update CODE_OF_CONDUCT.md" [ref=e328] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/3de1761794514904c99342d01e1de1bf5583ce2d
+                    - cell "Jan 10, 2025last year" [ref=e329]:
+                      - generic [ref=e330]: Jan 10, 2025last year
+                  - row "CONTRIBUTING.md, (File) Update CONTRIBUTING.md Feb 7, 2025last year" [ref=e331]:
+                    - cell "CONTRIBUTING.md, (File)" [ref=e332]:
+                      - generic [ref=e333]:
+                        - img [ref=e334]
+                        - link "CONTRIBUTING.md, (File)" [ref=e339] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/CONTRIBUTING.md
+                          - text: CONTRIBUTING.md
+                    - cell "Update CONTRIBUTING.md" [ref=e340]:
+                      - link "Update CONTRIBUTING.md" [ref=e343] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/561244bdefa9658fd94f90a4c489641453d9c270
+                    - cell "Feb 7, 2025last year" [ref=e344]:
+                      - generic [ref=e345]: Feb 7, 2025last year
+                  - row "LICENSE, (File) Initial commit Oct 4, 20206 years ago" [ref=e346]:
+                    - cell "LICENSE, (File)" [ref=e347]:
+                      - generic [ref=e348]:
+                        - img [ref=e349]
+                        - link "LICENSE, (File)" [ref=e354] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/LICENSE
+                          - text: LICENSE
+                    - cell "Initial commit" [ref=e355]:
+                      - link "Initial commit" [ref=e358] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/c6a06187a8a40be2c13a17a3b559ace80ca70320
+                    - cell "Oct 4, 20206 years ago" [ref=e359]:
+                      - generic [ref=e360]: Oct 4, 20206 years ago
+                  - 'row "README.md, (File) chore(readme.md): change ToS link May 16, 20262 months ago" [ref=e361]':
+                    - cell "README.md, (File)" [ref=e362]:
+                      - generic [ref=e363]:
+                        - img [ref=e364]
+                        - link "README.md, (File)" [ref=e369] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/README.md
+                          - text: README.md
+                    - 'cell "chore(readme.md): change ToS link" [ref=e370]':
+                      - 'link "chore(readme.md): change ToS link" [ref=e373] [cursor=pointer]':
+                        - /url: /is-a-dev/register/commit/574225dd9e2da8815514463fe7259839775827ab
+                    - cell "May 16, 20262 months ago" [ref=e374]:
+                      - generic [ref=e375]: May 16, 20262 months ago
+                  - row "SECURITY.md, (File) Update SECURITY.md Mar 18, 20264 months ago" [ref=e376]:
+                    - cell "SECURITY.md, (File)" [ref=e377]:
+                      - generic [ref=e378]:
+                        - img [ref=e379]
+                        - link "SECURITY.md, (File)" [ref=e384] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/SECURITY.md
+                          - text: SECURITY.md
+                    - cell "Update SECURITY.md" [ref=e385]:
+                      - link "Update SECURITY.md" [ref=e388] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/89515069a615d8bb57b2bc251ec00e2300ad3022
+                    - cell "Mar 18, 20264 months ago" [ref=e389]:
+                      - generic [ref=e390]: Mar 18, 20264 months ago
+                  - row "TERMS_OF_SERVICE.md, (File) Update TERMS_OF_SERVICE.md Jun 25, 2026last week" [ref=e391]:
+                    - cell "TERMS_OF_SERVICE.md, (File)" [ref=e392]:
+                      - generic [ref=e393]:
+                        - img [ref=e394]
+                        - link "TERMS_OF_SERVICE.md, (File)" [ref=e399] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/TERMS_OF_SERVICE.md
+                          - text: TERMS_OF_SERVICE.md
+                    - cell "Update TERMS_OF_SERVICE.md" [ref=e400]:
+                      - link "Update TERMS_OF_SERVICE.md" [ref=e403] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/7d427af00699baa75144f4209fca250a336c4b73
+                    - cell "Jun 25, 2026last week" [ref=e404]:
+                      - generic [ref=e405]: Jun 25, 2026last week
+                  - row "dnsconfig.js, (File) Update dnsconfig.js Jun 11, 2025last year" [ref=e406]:
+                    - cell "dnsconfig.js, (File)" [ref=e407]:
+                      - generic [ref=e408]:
+                        - img [ref=e409]
+                        - link "dnsconfig.js, (File)" [ref=e414] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/dnsconfig.js
+                          - text: dnsconfig.js
+                    - cell "Update dnsconfig.js" [ref=e415]:
+                      - link "Update dnsconfig.js" [ref=e418] [cursor=pointer]:
+                        - /url: /is-a-dev/register/commit/f95e419f65206049866995708ba8ab3988447207
+                    - cell "Jun 11, 2025last year" [ref=e419]:
+                      - generic [ref=e420]: Jun 11, 2025last year
+                  - 'row "package.json, (File) feat(ci): validation Nov 9, 20242 years ago" [ref=e421]':
+                    - cell "package.json, (File)" [ref=e422]:
+                      - generic [ref=e423]:
+                        - img [ref=e424]
+                        - link "package.json, (File)" [ref=e429] [cursor=pointer]:
+                          - /url: /is-a-dev/register/blob/main/package.json
+                          - text: package.json
+                    - 'cell "feat(ci): validation" [ref=e430]':
+                      - 'link "feat(ci): validation" [ref=e433] [cursor=pointer]':
+                        - /url: /is-a-dev/register/commit/94d13385297c47ecb024b9f65290afe7a0bfaaaf
+                    - cell "Nov 9, 20242 years ago" [ref=e434]:
+                      - generic [ref=e435]: Nov 9, 20242 years ago
+            - generic [ref=e437]:
+              - generic [ref=e438]:
+                - heading "Repository files navigation" [level=2] [ref=e439]
+                - navigation "Repository files" [ref=e440]:
+                  - list [ref=e441]:
+                    - listitem [ref=e442]:
+                      - link "README" [ref=e443] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e444]: README
+                    - listitem [ref=e445]:
+                      - link "Code of conduct" [ref=e446] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e447]: Code of conduct
+                    - listitem [ref=e448]:
+                      - link "Contributing" [ref=e449] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e450]: Contributing
+                    - listitem [ref=e451]:
+                      - link "GPL-3.0 license" [ref=e452] [cursor=pointer]:
+                        - /url: "#"
+                        - generic [ref=e453]: GPL-3.0 license
+                  - button "More items" [ref=e456] [cursor=pointer]:
+                    - generic [ref=e459]:
+                      - text: More
+                      - generic [ref=e460]: items
+                    - generic:
+                      - img
+                - button "Outline" [ref=e461] [cursor=pointer]:
+                  - img [ref=e462]
+              - article [ref=e465]:
+                - paragraph [ref=e466]:
+                  - link "is-a.dev Banner" [ref=e467] [cursor=pointer]:
+                    - /url: https://raw.githubusercontent.com/is-a-dev/register/main/media/banner.png
+                    - img "is-a.dev Banner" [ref=e468]
+                - paragraph [ref=e469]:
+                  - link "Domains" [ref=e470] [cursor=pointer]:
+                    - /url: https://camo.githubusercontent.com/06ad211a8f9cf1a336a05fb424d6104143ed12b7e76f891479ea39b97a06313b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6469726563746f72792d66696c652d636f756e742f69732d612d6465762f72656769737465722f646f6d61696e733f636f6c6f723d356334366562266c6162656c3d646f6d61696e73267374796c653d666f722d7468652d6261646765
+                    - img "Domains" [ref=e471]
+                  - link "Open Pull Requests" [ref=e472] [cursor=pointer]:
+                    - /url: https://camo.githubusercontent.com/9e11246b4095aa4e1faf3bc6da8a8214e9686f01f8fce71c1b729c883dbe4cac/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6973737565732d7261772f69732d612d6465762f72656769737465723f636f6c6f723d356334366562266c6162656c3d697373756573267374796c653d666f722d7468652d6261646765
+                    - img "Open Pull Requests" [ref=e473]
+                  - link "Open Issues" [ref=e474] [cursor=pointer]:
+                    - /url: https://camo.githubusercontent.com/c71694645b34b74a16fef5b50bf012ff2cde8072b65b71bf56bb2b524156412b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6973737565732d70722d7261772f69732d612d6465762f72656769737465723f636f6c6f723d356334366562266c6162656c3d70756c6c2532307265717565737473267374796c653d666f722d7468652d6261646765
+                    - img "Open Issues" [ref=e475]
+                - generic [ref=e476]:
+                  - heading "is-a.dev" [level=1] [ref=e477]
+                  - 'link "Permalink: is-a.dev" [ref=e478] [cursor=pointer]':
+                    - /url: "#is-adev"
+                    - img [ref=e479]
+                - paragraph [ref=e481]:
+                  - strong [ref=e482]: is-a.dev
+                  - text: is a service that allows developers to get a sweet-looking
+                  - code [ref=e483]: .is-a.dev
+                  - text: subdomain for their personal websites.
+                - separator [ref=e484]
+                - generic [ref=e485]:
+                  - heading "Announcements" [level=2] [ref=e486]
+                  - 'link "Permalink: Announcements" [ref=e487] [cursor=pointer]':
+                    - /url: "#announcements"
+                    - img [ref=e488]
+                - paragraph [ref=e490]:
+                  - text: Please join our
+                  - link "Discord server" [ref=e491] [cursor=pointer]:
+                    - /url: https://discord.gg/is-a-dev-830872854677422150
+                  - text: for announcements, service updates, and downtime notifications regarding the service.
+                - paragraph [ref=e492]:
+                  - text: Not all announcements are posted on GitHub
+                  - superscript [ref=e493]:
+                    - link "[1]" [ref=e494] [cursor=pointer]:
+                      - /url: "#user-content-fn-1-4edf3a101820adc640f633c0dd54ed85"
+                  - text: ", however they will always be posted in our Discord server."
+                - generic [ref=e495]:
+                  - heading "Register" [level=1] [ref=e496]
+                  - 'link "Permalink: Register" [ref=e497] [cursor=pointer]':
+                    - /url: "#register"
+                    - img [ref=e498]
+                - blockquote [ref=e500]:
+                  - paragraph [ref=e501]:
+                    - text: If you want a visual guide, check out
+                    - link "this blog post" [ref=e502] [cursor=pointer]:
+                      - /url: https://blog.wharrison.com.au/2024/07/is-a-dev/
+                    - text: .
+                - list [ref=e503]:
+                  - listitem [ref=e504]:
+                    - link "Fork" [ref=e505] [cursor=pointer]:
+                      - /url: https://github.com/is-a-dev/register/fork
+                    - text: the repository.
+                  - listitem [ref=e506]:
+                    - text: Follow the instructions on our
+                    - link "documentation" [ref=e507] [cursor=pointer]:
+                      - /url: https://docs.is-a.dev
+                    - text: .
+                  - listitem [ref=e508]:
+                    - text: Once you open your pull request (PR), it will be reviewed.
+                    - emphasis [ref=e509]: Keep an eye on it in case changes are needed!
+                    - list [ref=e510]:
+                      - listitem [ref=e511]:
+                        - text: If changes have been requested, please make the specified changes otherwise
+                        - strong [ref=e512]: you will be rejected
+                        - text: .
+                  - listitem [ref=e513]: Once your PR is merged, your DNS records should be published with-in a few minutes.
+                  - listitem [ref=e514]:
+                    - text: Enjoy your new
+                    - code [ref=e515]: .is-a.dev
+                    - text: subdomain! Please consider leaving a star ⭐️ to help support us!
+                - generic [ref=e516]:
+                  - heading "Spam Pull Requests" [level=2] [ref=e517]
+                  - 'link "Permalink: Spam Pull Requests" [ref=e518] [cursor=pointer]':
+                    - /url: "#spam-pull-requests"
+                    - img [ref=e519]
+                - paragraph [ref=e521]: "With the recent rising of invalid PRs, including PRs generated with AI, we reserve the right to:"
+                - list [ref=e522]:
+                  - listitem [ref=e523]: Close these PRs without explanation.
+                  - listitem [ref=e524]: Block or limit the author's ability to interact with is-a.dev's repositories and resources.
+                  - listitem [ref=e525]: Remove any existing domains owned by the author if connected to TOS-violating content.
+                - generic [ref=e526]:
+                  - heading "Report Abuse" [level=2] [ref=e527]
+                  - 'link "Permalink: Report Abuse" [ref=e528] [cursor=pointer]':
+                    - /url: "#report-abuse"
+                    - img [ref=e529]
+                - paragraph [ref=e531]:
+                  - text: If you find any subdomains being abused or breaking our
+                  - link "ToS" [ref=e532] [cursor=pointer]:
+                    - /url: https://is-a.dev/terms
+                  - text: ", please report them by"
+                  - link "creating an issue" [ref=e533] [cursor=pointer]:
+                    - /url: https://github.com/is-a-dev/register/issues/new?assignees=&labels=report-abuse&projects=&template=report-abuse.md&title=Report+abuse
+                  - text: with relevant evidence.
+                - separator [ref=e534]
+                - paragraph [ref=e535]:
+                  - text: We are supported by Cloudflare's
+                  - link "Project Alexandria" [ref=e536] [cursor=pointer]:
+                    - /url: https://www.cloudflare.com/lp/project-alexandria
+                  - text: sponsorship program, we would not be able to operate without their help!
+                - link "Cloudflare Logo" [ref=e537] [cursor=pointer]:
+                  - /url: https://www.cloudflare.com
+                  - img "Cloudflare Logo" [ref=e538]
+                - generic [ref=e539]:
+                  - heading "Footnotes" [level=2] [ref=e540]
+                  - list [ref=e541]:
+                    - listitem [ref=e542]:
+                      - paragraph [ref=e543]:
+                        - text: We only post announcements on GitHub in the case of a serious incident, which you'll see at the top of this README.
+                        - link "Back to reference 1" [ref=e544] [cursor=pointer]:
+                          - /url: "#user-content-fnref-1-4edf3a101820adc640f633c0dd54ed85"
+                          - text: ↩
+        - generic [ref=e548]:
+          - generic [ref=e551]:
+            - heading "About" [level=2] [ref=e552]
+            - paragraph [ref=e553]: Grab your own sweet-looking '.is-a.dev' subdomain.
+            - generic [ref=e554]:
+              - img [ref=e555]
+              - link "docs.is-a.dev" [ref=e558] [cursor=pointer]:
+                - /url: https://docs.is-a.dev
+            - heading "Topics" [level=3] [ref=e559]
+            - generic [ref=e561]:
+              - link "dns" [ref=e562] [cursor=pointer]:
+                - /url: /topics/dns
+              - link "github-pages" [ref=e563] [cursor=pointer]:
+                - /url: /topics/github-pages
+              - link "website" [ref=e564] [cursor=pointer]:
+                - /url: /topics/website
+              - link "oss" [ref=e565] [cursor=pointer]:
+                - /url: /topics/oss
+              - link "foss" [ref=e566] [cursor=pointer]:
+                - /url: /topics/foss
+              - link "domain" [ref=e567] [cursor=pointer]:
+                - /url: /topics/domain
+              - link "dev" [ref=e568] [cursor=pointer]:
+                - /url: /topics/dev
+              - link "cloudflare" [ref=e569] [cursor=pointer]:
+                - /url: /topics/cloudflare
+              - link "subdomain" [ref=e570] [cursor=pointer]:
+                - /url: /topics/subdomain
+              - link "developer" [ref=e571] [cursor=pointer]:
+                - /url: /topics/developer
+              - link "free" [ref=e572] [cursor=pointer]:
+                - /url: /topics/free
+              - link "free-domain" [ref=e573] [cursor=pointer]:
+                - /url: /topics/free-domain
+              - link "free-for-developers" [ref=e574] [cursor=pointer]:
+                - /url: /topics/free-for-developers
+              - link "free-for-dev" [ref=e575] [cursor=pointer]:
+                - /url: /topics/free-for-dev
+            - heading "Resources" [level=3] [ref=e576]
+            - link "Readme" [ref=e578] [cursor=pointer]:
+              - /url: "#readme-ov-file"
+              - img [ref=e579]
+              - text: Readme
+            - heading "License" [level=3] [ref=e581]
+            - link "GPL-3.0 license" [ref=e583] [cursor=pointer]:
+              - /url: "#GPL-3.0-1-ov-file"
+              - img [ref=e584]
+              - text: GPL-3.0 license
+            - heading "Code of conduct" [level=3] [ref=e586]
+            - link "Code of conduct" [ref=e588] [cursor=pointer]:
+              - /url: "#coc-ov-file"
+              - img [ref=e589]
+              - text: Code of conduct
+            - heading "Contributing" [level=3] [ref=e591]
+            - link "Contributing" [ref=e593] [cursor=pointer]:
+              - /url: "#contributing-ov-file"
+              - img [ref=e594]
+              - text: Contributing
+            - heading "Security policy" [level=3] [ref=e596]
+            - link "Security policy" [ref=e598] [cursor=pointer]:
+              - /url: "#security-ov-file"
+              - img [ref=e599]
+              - text: Security policy
+            - link "Activity" [ref=e602] [cursor=pointer]:
+              - /url: /is-a-dev/register/activity
+              - img [ref=e603]
+              - text: Activity
+            - link "Custom properties" [ref=e606] [cursor=pointer]:
+              - /url: /is-a-dev/register/custom-properties
+              - img [ref=e607]
+              - text: Custom properties
+            - heading "Stars" [level=3] [ref=e609]
+            - link "10.6k stars" [ref=e611] [cursor=pointer]:
+              - /url: /is-a-dev/register/stargazers
+              - img [ref=e612]
+              - strong [ref=e614]: 10.6k
+              - text: stars
+            - heading "Watchers" [level=3] [ref=e615]
+            - link "32 watching" [ref=e617] [cursor=pointer]:
+              - /url: /is-a-dev/register/watchers
+              - img [ref=e618]
+              - strong [ref=e620]: "32"
+              - text: watching
+            - heading "Forks" [level=3] [ref=e621]
+            - link "23.7k forks" [ref=e623] [cursor=pointer]:
+              - /url: /is-a-dev/register/forks
+              - img [ref=e624]
+              - strong [ref=e626]: 23.7k
+              - text: forks
+            - link "Report repository" [ref=e628] [cursor=pointer]:
+              - /url: /contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fis-a-dev%2Fregister&report=is-a-dev+%28user%29
+          - generic [ref=e630]:
+            - heading "Sponsor this project" [level=2] [ref=e631]
+            - list [ref=e632]:
+              - listitem [ref=e633]:
+                - link "@wdhdev" [ref=e634] [cursor=pointer]:
+                  - /url: /wdhdev
+                  - img "@wdhdev" [ref=e635]
+                - link "wdhdev William Harrison" [ref=e637] [cursor=pointer]:
+                  - /url: /wdhdev
+                  - strong [ref=e638]: wdhdev
+                  - text: William Harrison
+                - link "Sponsor @wdhdev" [ref=e639] [cursor=pointer]:
+                  - /url: /sponsors/wdhdev
+                  - img [ref=e642]
+            - list [ref=e644]:
+              - listitem [ref=e645]:
+                - img [ref=e647]
+                - link "https://donate.is-a.dev" [ref=e650] [cursor=pointer]:
+                  - /url: https://donate.is-a.dev
+            - link "Learn more about GitHub Sponsors" [ref=e652] [cursor=pointer]:
+              - /url: /sponsors
+          - generic [ref=e654]:
+            - heading "Contributors 5,000+" [level=2] [ref=e655]:
+              - link "Contributors 5,000+" [ref=e656] [cursor=pointer]:
+                - /url: /is-a-dev/register/graphs/contributors
+                - text: Contributors
+                - generic "5,000+" [ref=e657]
+            - list [ref=e658]:
+              - listitem [ref=e659]:
+                - link "@wdhdev" [ref=e660] [cursor=pointer]:
+                  - /url: https://github.com/wdhdev
+                  - img "@wdhdev" [ref=e661]
+              - listitem [ref=e662]:
+                - link "@DEV-DIBSTER" [ref=e663] [cursor=pointer]:
+                  - /url: https://github.com/DEV-DIBSTER
+                  - img "@DEV-DIBSTER" [ref=e664]
+              - listitem [ref=e665]:
+                - link "@STICKnoLOGIC" [ref=e666] [cursor=pointer]:
+                  - /url: https://github.com/STICKnoLOGIC
+                  - img "@STICKnoLOGIC" [ref=e667]
+              - listitem [ref=e668]:
+                - link "@iostpa" [ref=e669] [cursor=pointer]:
+                  - /url: https://github.com/iostpa
+                  - img "@iostpa" [ref=e670]
+              - listitem [ref=e671]:
+                - link "@orangci" [ref=e672] [cursor=pointer]:
+                  - /url: https://github.com/orangci
+                  - img "@orangci" [ref=e673]
+              - listitem [ref=e674]:
+                - link "@phenax" [ref=e675] [cursor=pointer]:
+                  - /url: https://github.com/phenax
+                  - img "@phenax" [ref=e676]
+              - listitem [ref=e677]:
+                - link "@MaskDuck" [ref=e678] [cursor=pointer]:
+                  - /url: https://github.com/MaskDuck
+                  - img "@MaskDuck" [ref=e679]
+              - listitem [ref=e680]:
+                - link "@21Z" [ref=e681] [cursor=pointer]:
+                  - /url: https://github.com/21Z
+                  - img "@21Z" [ref=e682]
+              - listitem [ref=e683]:
+                - link "@TheBotlyNoob" [ref=e684] [cursor=pointer]:
+                  - /url: https://github.com/TheBotlyNoob
+                  - img "@TheBotlyNoob" [ref=e685]
+              - listitem [ref=e686]:
+                - link "@notamitgamer" [ref=e687] [cursor=pointer]:
+                  - /url: https://github.com/notamitgamer
+                  - img "@notamitgamer" [ref=e688]
+              - listitem [ref=e689]:
+                - link "@dragsbruh" [ref=e690] [cursor=pointer]:
+                  - /url: https://github.com/dragsbruh
+                  - img "@dragsbruh" [ref=e691]
+              - listitem [ref=e692]:
+                - link "@hackermondev" [ref=e693] [cursor=pointer]:
+                  - /url: https://github.com/hackermondev
+                  - img "@hackermondev" [ref=e694]
+              - listitem [ref=e695]:
+                - link "@mtgsquad" [ref=e696] [cursor=pointer]:
+                  - /url: https://github.com/mtgsquad
+                  - img "@mtgsquad" [ref=e697]
+              - listitem [ref=e698]:
+                - link "@omsenjalia" [ref=e699] [cursor=pointer]:
+                  - /url: https://github.com/omsenjalia
+                  - img "@omsenjalia" [ref=e700]
+            - link "+ 11,553 contributors" [ref=e702] [cursor=pointer]:
+              - /url: /is-a-dev/register/graphs/contributors
+          - generic [ref=e704]:
+            - heading "Languages" [level=2] [ref=e705]
+            - list [ref=e709]:
+              - listitem [ref=e710]:
+                - link "JavaScript 100.0%" [ref=e711] [cursor=pointer]:
+                  - /url: /is-a-dev/register/search?l=javascript
+                  - img [ref=e712]
+                  - generic [ref=e714]: JavaScript
+                  - generic [ref=e715]: 100.0%
+  - contentinfo [ref=e717]:
+    - heading "Footer" [level=2] [ref=e718]
+    - generic [ref=e719]:
+      - generic [ref=e720]:
+        - link "GitHub Homepage" [ref=e721] [cursor=pointer]:
+          - /url: https://github.com
+          - img [ref=e722]
+        - generic [ref=e724]: © 2026 GitHub, Inc.
+      - navigation "Footer" [ref=e725]:
+        - heading "Footer navigation" [level=3] [ref=e726]
+        - list "Footer navigation" [ref=e727]:
+          - listitem [ref=e728]:
+            - link "Terms" [ref=e729] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+          - listitem [ref=e730]:
+            - link "Privacy" [ref=e731] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+          - listitem [ref=e732]:
+            - link "Security" [ref=e733] [cursor=pointer]:
+              - /url: https://github.com/security
+          - listitem [ref=e734]:
+            - link "Status" [ref=e735] [cursor=pointer]:
+              - /url: https://www.githubstatus.com/
+          - listitem [ref=e736]:
+            - link "Community" [ref=e737] [cursor=pointer]:
+              - /url: https://github.community/
+          - listitem [ref=e738]:
+            - link "Docs" [ref=e739] [cursor=pointer]:
+              - /url: https://docs.github.com/
+          - listitem [ref=e740]:
+            - link "Contact" [ref=e741] [cursor=pointer]:
+              - /url: https://support.github.com?tags=dotcom-footer
+          - listitem [ref=e742]:
+            - button "Manage cookies" [ref=e744] [cursor=pointer]
+          - listitem [ref=e745]:
+            - button "Do not share my personal information" [ref=e747] [cursor=pointer]
