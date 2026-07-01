@@ -5,10 +5,12 @@ import { Background } from "@/components/background"
 import { VideoBg } from "@/components/video-bg"
 import { ScrollProgress } from "@/components/scroll-progress"
 import { ScrambleText } from "@/components/scramble-text"
+import { CursorTrail } from "@/components/cursor-trail"
 
 export default function Home() {
   return (
     <>
+      <CursorTrail />
       <ScrollProgress />
       <VideoBg />
       <Background />
