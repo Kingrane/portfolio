@@ -39,58 +39,6 @@
   90% { transform: translate(-10%, 10%); }
 }
 
-@keyframes shimmer-slide {
-  0% { transform: translateX(-100%) skewX(-15deg); }
-  100% { transform: translateX(200%) skewX(-15deg); }
-}
-
-.liquid-glass {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(32px) saturate(1.1);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.02),
-    0 4px 24px rgba(0, 0, 0, 0.5);
-}
-
-.glass-hover {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glass-hover::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(94, 234, 212, 0.03) 50%,
-    rgba(255, 255, 255, 0.04) 55%,
-    transparent 70%
-  );
-  transform: translateX(-100%) skewX(-15deg);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.glass-hover:hover {
-  border-color: rgba(94, 234, 212, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(94, 234, 212, 0.03),
-    0 8px 32px rgba(94, 234, 212, 0.04),
-    0 0 60px rgba(94, 234, 212, 0.015);
-}
-
-.glass-hover:hover::after {
-  animation: shimmer-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 .double-bezel-outer {
   background: rgba(255, 255, 255, 0.02);
   padding: 1px;
