@@ -36,7 +36,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden rounded-[16px] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-[0_8px_32px_rgba(94,234,212,0.04),0_0_60px_rgba(94,234,212,0.015)]"
+        className="relative overflow-hidden rounded-[16px] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-[0_8px_32px_rgba(251,191,36,0.06),0_0_60px_rgba(251,191,36,0.03)]"
       >
         <div className="absolute inset-0 rounded-[16px] bg-[rgba(255,255,255,0.02)] backdrop-blur-[32px] saturate-[1.1] border border-white/[0.04]" />
 
@@ -44,7 +44,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
           className="absolute -inset-[1px] rounded-[17px] pointer-events-none transition-opacity duration-300"
           style={{
             opacity: pos.opacity,
-            background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, rgba(94,234,212,0.25) 0%, transparent 60%)`,
+            background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, rgba(251,191,36,0.5) 0%, rgba(251,191,36,0.15) 30%, transparent 65%)`,
             mask: "linear-gradient(black,black) content-box, linear-gradient(black,black)",
             maskComposite: "exclude",
             WebkitMask: "linear-gradient(black,black) content-box, linear-gradient(black,black)",
