@@ -11,7 +11,7 @@ export function ScrambleText({
   text: string
   className?: string
 }) {
-  const [display, setDisplay] = useState(text)
+  const [display, setDisplay] = useState<string[]>(text.split(""))
   const [key, setKey] = useState(0)
   const [hovering, setHovering] = useState(false)
 
@@ -21,28 +21,30 @@ export function ScrambleText({
 
   useEffect(() => {
     let frame: number
+    const duration = 70
+    const staggerPerChar = 6
+    const totalDuration = duration + text.length * staggerPerChar
     let step = 0
-    const totalFrames = 70
 
     const animate = () => {
       step++
-      const raw = step / totalFrames
-      const progress = raw < 0.5 ? 2 * raw * raw : 1 - (-2 * raw + 2) ** 2 / 2
-      const revealed = Math.floor(progress * text.length)
 
-      const result = text
-        .split("")
-        .map((char, i) => {
-          if (i < revealed) return char
-          if (char === " ") return " "
-          if (progress > 0.95) return char
-          return chars[Math.floor(Math.random() * chars.length)]
-        })
-        .join("")
+      const result = text.split("").map((char, i) => {
+        const charStart = i * staggerPerChar
+        const charEnd = charStart + duration
+        if (step < charStart || step > charEnd) {
+          return char
+        }
+        if (step >= charEnd - 5) {
+          return char
+        }
+        if (char === " ") return " "
+        return chars[Math.floor(Math.random() * chars.length)]
+      })
 
       setDisplay(result)
 
-      if (progress < 1) {
+      if (step < totalDuration) {
         frame = requestAnimationFrame(animate)
       }
     }
@@ -57,7 +59,7 @@ export function ScrambleText({
       onMouseEnter={scramble}
       style={{ cursor: "pointer" }}
     >
-      {display}
+      {display.join("")}
     </span>
   )
 }
