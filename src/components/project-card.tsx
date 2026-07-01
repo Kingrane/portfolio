@@ -6,18 +6,18 @@ import type { Project } from "@/data/projects"
 
 export function ProjectCard({ project, index }: { project: Project; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [glare, setGlare] = useState({ x: 50, y: 50, opacity: 0 })
+  const [pos, setPos] = useState({ x: 50, y: 50, opacity: 0 })
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = cardRef.current?.getBoundingClientRect()
     if (!rect) return
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
-    setGlare({ x, y, opacity: 1 })
+    setPos({ x, y, opacity: 1 })
   }, [])
 
   const handleMouseLeave = useCallback(() => {
-    setGlare((prev) => ({ ...prev, opacity: 0 }))
+    setPos((prev) => ({ ...prev, opacity: 0 }))
   }, [])
 
   return (
@@ -41,17 +41,22 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
         <div className="absolute inset-0 rounded-[16px] bg-[rgba(255,255,255,0.02)] backdrop-blur-[32px] saturate-[1.1] border border-white/[0.04]" />
 
         <div
-          className="absolute inset-0 rounded-[16px] transition-opacity duration-300"
+          className="absolute -inset-[1px] rounded-[17px] pointer-events-none transition-opacity duration-300"
           style={{
-            opacity: glare.opacity,
-            background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255,255,255,0.07) 0%, rgba(94,234,212,0.03) 30%, transparent 70%)`,
+            opacity: pos.opacity,
+            background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, rgba(94,234,212,0.25) 0%, transparent 60%)`,
+            mask: "linear-gradient(black,black) content-box, linear-gradient(black,black)",
+            maskComposite: "exclude",
+            WebkitMask: "linear-gradient(black,black) content-box, linear-gradient(black,black)",
+            WebkitMaskComposite: "xor",
+            padding: "1px",
           }}
         />
 
         <div
           className="absolute inset-0 rounded-[16px] pointer-events-none"
           style={{
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(255,255,255,0.02)`,
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(255,255,255,0.02)",
           }}
         />
 

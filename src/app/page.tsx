@@ -3,10 +3,13 @@ import { ProjectCard } from "@/components/project-card"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { Background } from "@/components/background"
 import { VideoBg } from "@/components/video-bg"
+import { ScrollProgress } from "@/components/scroll-progress"
+import { ScrambleText } from "@/components/scramble-text"
 
 export default function Home() {
   return (
     <>
+      <ScrollProgress />
       <VideoBg />
       <Background />
 
@@ -18,12 +21,12 @@ export default function Home() {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <h1 className="mt-6 text-5xl font-bold tracking-tight text-heading sm:text-6xl lg:text-7xl">
-                Kingrane
+                <ScrambleText text="Kingrane" />
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="mt-4 text-lg leading-relaxed text-muted sm:text-xl">
-                Full-stack developer. Экспериментирую с вебом, 3D, и AI.
+                Full-stack developer. Балуюсь с вебом, 3D, AI.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.3}>
@@ -45,9 +48,9 @@ export default function Home() {
             <div className="mb-14">
               <span className="eyebrow">Projects</span>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-heading sm:text-4xl">
-                Что я накодил
+                Что я навайбкодил
               </h2>
-              <p className="mt-2 text-muted">10 проектов — от 3D-игр до веб-DAW</p>
+              <p className="mt-2 text-muted">10 проектов веселушек</p>
             </div>
           </ScrollReveal>
 
