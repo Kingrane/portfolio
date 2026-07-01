@@ -6,18 +6,18 @@ import type { Project } from "@/data/projects"
 
 export function ProjectCard({ project, index }: { project: Project; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ x: 50, y: 50, opacity: 0 })
+  const [pos, setPos] = useState({ x: 50, y: 50, visible: false })
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const rect = cardRef.current?.getBoundingClientRect()
     if (!rect) return
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
-    setPos({ x, y, opacity: 1 })
+    setPos({ x, y, visible: true })
   }, [])
 
-  const handleMouseLeave = useCallback(() => {
-    setPos((prev) => ({ ...prev, opacity: 0 }))
+  const handlePointerLeave = useCallback(() => {
+    setPos((prev) => ({ ...prev, visible: false }))
   }, [])
 
   return (
@@ -34,22 +34,17 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
     >
       <div
         ref={cardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
         className="relative overflow-hidden rounded-[16px] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-[0_8px_32px_rgba(251,191,36,0.06),0_0_60px_rgba(251,191,36,0.03)]"
       >
         <div className="absolute inset-0 rounded-[16px] bg-[rgba(255,255,255,0.02)] backdrop-blur-[32px] saturate-[1.1] border border-white/[0.04]" />
 
         <div
-          className="absolute -inset-[1px] rounded-[17px] pointer-events-none transition-opacity duration-300"
+          className="absolute inset-0 rounded-[16px] pointer-events-none transition-opacity duration-200"
           style={{
-            opacity: pos.opacity,
-            background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, rgba(251,191,36,0.5) 0%, rgba(251,191,36,0.15) 30%, transparent 65%)`,
-            mask: "linear-gradient(black,black) content-box, linear-gradient(black,black)",
-            maskComposite: "exclude",
-            WebkitMask: "linear-gradient(black,black) content-box, linear-gradient(black,black)",
-            WebkitMaskComposite: "xor",
-            padding: "1px",
+            opacity: pos.visible ? 1 : 0,
+            background: `radial-gradient(350px circle at ${pos.x}% ${pos.y}%, rgba(255,250,240,0.07) 0%, transparent 60%)`,
           }}
         />
 

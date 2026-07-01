@@ -28,7 +28,7 @@ export default function Home() {
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="mt-4 text-lg leading-relaxed text-muted sm:text-xl">
-                Full-stack developer. Балуюсь с вебом, 3D, AI.
+                Full-stack vibe developer. Балуюсь с вебом, 3D, AI.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.3}>

@@ -60,7 +60,7 @@ export function CursorTrail() {
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed - 0.2,
             life: 0,
-            maxLife: 50 + Math.random() * 40,
+            maxLife: 150 + Math.random() * 40,
             size: 1.5 + Math.random() * 2,
             rotation: Math.random() * Math.PI * 2,
             rotSpeed: (Math.random() - 0.5) * 0.04,
