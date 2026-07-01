@@ -20,7 +20,7 @@ export default function Home() {
               <span className="eyebrow">Portfolio</span>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
-              <h1 className="mt-6 text-5xl font-bold tracking-tight text-heading sm:text-6xl lg:text-7xl text-3d">
+              <h1 className="mt-6 text-5xl font-bold tracking-tight text-heading sm:text-6xl lg:text-7xl">
                 <ScrambleText text="Kingrane" />
               </h1>
             </ScrollReveal>
