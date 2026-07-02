@@ -6,6 +6,7 @@ import { VideoBg } from "@/components/video-bg"
 import { ScrollProgress } from "@/components/scroll-progress"
 import { ScrambleText } from "@/components/scramble-text"
 import { CursorTrail } from "@/components/cursor-trail"
+import { ConveyorBelt } from "@/components/conveyor-belt"
 
 export default function Home() {
   return (
@@ -45,14 +46,16 @@ export default function Home() {
           </div>
         </section>
 
-        <main className="mx-auto w-full max-w-6xl px-6 py-24 sm:px-8">
+        <ConveyorBelt />
+
+        <main className="mx-auto w-full max-w-6xl px-6 py-34 sm:px-8">
           <ScrollReveal>
             <div className="mb-14">
               <span className="eyebrow">Projects</span>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-heading sm:text-4xl">
                 Что я навайбкодил
               </h2>
-              <p className="mt-2 text-muted">10 проектов веселушек</p>
+              <p className="mt-2 text-muted">Вот 10 проектиков, но это еще не все, дальше веселее!</p>
             </div>
           </ScrollReveal>
 

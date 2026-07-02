@@ -14,7 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Kingrane | Portfolio",
-  description: "Full-stack developer. Experimental web, 3D, and AI projects.",
+  description: "Бебебе",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
