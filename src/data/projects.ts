@@ -16,25 +16,11 @@ export const projects: Project[] = [
     repo: "https://github.com/Kingrane/qtxt",
   },
   {
-    title: "WEB-FL",
-    description: "Веб-DAW в стиле FL Studio. Синтезаторы, Piano Roll, Arrangement View, эффекты Reverb/Delay, экспорт в WAV.",
-    tech: ["React", "TypeScript", "Vite", "Tone.js", "Tailwind CSS"],
-    href: "https://web-fl.vercel.app",
-    repo: "https://github.com/Kingrane/WEB-FL",
-  },
-  {
     title: "super-brs",
     description: "Красивый веб и Android-клиент для БРС ЮФУ. Полная синхронизация через официальное REST API университета.",
     tech: ["React", "React Native", "JavaScript", "Tailwind CSS"],
     href: "https://super-brs.vercel.app",
     repo: "https://github.com/Kingrane/super-brs",
-  },
-  {
-    title: "pogodka",
-    description: "Погодный контроллер со Swiss Design эстетикой. Динамические частицы, цветовые темы, Time Scrubbing.",
-    tech: ["React", "Vite", "Framer Motion", "Canvas API", "OpenWeatherMap"],
-    href: "https://pogod-ka.vercel.app",
-    repo: "https://github.com/Kingrane/pogodka",
   },
   {
     title: "glazik",
@@ -65,6 +51,20 @@ export const projects: Project[] = [
     repo: "https://github.com/Kingrane/nolimits",
   },
   {
+    title: "лендинг пицерии (не вайбкодинг!)",
+    description: "Сверстал лендинг пицерии на HTML/CSS/JS. Адаптивная верстка, модальные окна.",
+    tech: ["HTML", "CSS", "JavaScript"],
+    href: "https://kingrane.github.io/test-html/",
+    repo: "https://github.com/Kingrane/test-html",
+  },
+  {
+    title: "pogodka",
+    description: "Погодный контроллер со Swiss Design эстетикой. Динамические частицы, цветовые темы, Time Scrubbing.",
+    tech: ["React", "Vite", "Framer Motion", "Canvas API", "OpenWeatherMap"],
+    href: "https://pogod-ka.vercel.app",
+    repo: "https://github.com/Kingrane/pogodka",
+  },
+  {
     title: "Fizmatik",
     description: "Сайт для решения задач по математике, физике и информатике с помощью ИИ. Пошаговые решения с формулами.",
     tech: ["Python", "Flask", "OpenRouter API", "JavaScript", "CSS"],
@@ -77,5 +77,12 @@ export const projects: Project[] = [
     tech: ["Node.js", "Vercel Serverless"],
     href: "https://cmd-ai.vercel.app",
     repo: "https://github.com/Kingrane/cmd-ai",
+  },
+  {
+    title: "WEB-FL",
+    description: "Веб-DAW в стиле FL Studio. Синтезаторы, Piano Roll, Arrangement View, эффекты Reverb/Delay, экспорт в WAV.",
+    tech: ["React", "TypeScript", "Vite", "Tone.js", "Tailwind CSS"],
+    href: "https://web-fl.vercel.app",
+    repo: "https://github.com/Kingrane/WEB-FL",
   },
 ]
