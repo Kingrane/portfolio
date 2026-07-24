@@ -37,6 +37,13 @@ export const projects: Project[] = [
     repo: "https://github.com/Kingrane/Halftone-Studio",
   },
   {
+    title: "polotno",
+    description: "Минималистичный веб-редактор заметок и эскизов с бесконечным холстом. (Рисовалка) С возможностью экспорта и шерингом холста",
+    tech: ["React", "Tailwind CSS", "Next.js", "TypeScript, Zustand, MongoDB, Freehand, roughjs"],
+    href: "https://polotno.vercel.app",
+    repo: "https://github.com/Kingrane/polotno",
+  },
+  {
     title: "little-tennis",
     description: "Минималистичная 3D-игра в настольный теннис на Three.js с кастомным физическим движком и эффектом Магнуса.",
     tech: ["Three.js", "React", "Vite", "TypeScript", "Tailwind CSS"],
