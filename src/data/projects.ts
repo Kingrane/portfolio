@@ -58,13 +58,6 @@ export const projects: Project[] = [
     repo: "https://github.com/Kingrane/nolimits",
   },
   {
-    title: "лендинг пицерии (не вайбкодинг!)",
-    description: "Сверстал лендинг пицерии на HTML/CSS/JS. Адаптивная верстка, модальные окна.",
-    tech: ["HTML", "CSS", "JavaScript"],
-    href: "https://kingrane.github.io/test-html/",
-    repo: "https://github.com/Kingrane/test-html",
-  },
-  {
     title: "pogodka",
     description: "Погодный контроллер со Swiss Design эстетикой. Динамические частицы, цветовые темы, Time Scrubbing.",
     tech: ["React", "Vite", "Framer Motion", "Canvas API", "OpenWeatherMap"],
@@ -91,5 +84,29 @@ export const projects: Project[] = [
     tech: ["React", "TypeScript", "Vite", "Tone.js", "Tailwind CSS"],
     href: "https://web-fl.vercel.app",
     repo: "https://github.com/Kingrane/WEB-FL",
+  },
+]
+
+export const handmadeProjects: Project[] = [
+  {
+    title: "react-posts",
+    description: "Красивенький сайтик на React с постами.",
+    tech: ["React", "Vite", "JavaScript"],
+    href: "https://drop-97a2d8f1-474.borisovroma55.workers.dev/",
+    repo: "https://github.com/Kingrane/react-posts-novibecode",
+  },
+  {
+    title: "лендинг пицерии",
+    description: "Сверстал лендинг пицерии на HTML/CSS/JS. Адаптивная верстка, модальные окна.",
+    tech: ["HTML", "CSS", "JavaScript"],
+    href: "https://kingrane.github.io/test-html/",
+    repo: "https://github.com/Kingrane/test-html",
+  },
+  {
+    title: "novibecode-weather",
+    description: "Погодка на React, написанная руками. Текущая погода по городам.",
+    tech: ["React", "Vite", "JavaScript", "Tailwind CSS", "OpenMeteo API"],
+    href: "https://kingrane.github.io/novibecode-weather/",
+    repo: "https://github.com/Kingrane/novibecode-weather",
   },
 ]

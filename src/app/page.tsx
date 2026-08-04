@@ -1,4 +1,4 @@
-import { projects } from "@/data/projects"
+import { projects, handmadeProjects } from "@/data/projects"
 import { ProjectCard } from "@/components/project-card"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { Background } from "@/components/background"
@@ -61,6 +61,22 @@ export default function Home() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {projects.map((project, i) => (
+              <ProjectCard key={project.title} project={project} index={i} />
+            ))}
+          </div>
+
+          <ScrollReveal>
+            <div className="mb-14 mt-24">
+              <span className="eyebrow">Handmade</span>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-heading sm:text-4xl">
+                А тут я не вайбкодил
+              </h2>
+              <p className="mt-2 text-muted">Ручками сам делал.</p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {handmadeProjects.map((project, i) => (
               <ProjectCard key={project.title} project={project} index={i} />
             ))}
           </div>
