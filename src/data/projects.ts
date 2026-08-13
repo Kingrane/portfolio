@@ -109,4 +109,11 @@ export const handmadeProjects: Project[] = [
     href: "https://kingrane.github.io/novibecode-weather/",
     repo: "https://github.com/Kingrane/novibecode-weather",
   },
+  {
+    title: "novibecode-pizza",
+    description: "Лендинг пицерии на React, написанный руками, уже не просто html, так и с работающей корзиной еще!",
+    tech: ["React", "Vite", "JavaScript", "Tailwind CSS", "Redux Toolkit", "React Router", "Local Storage"],
+    href: "https://kingrane.github.io/novibecode-pizza-react/",
+    repo: "https://github.com/Kingrane/novibecode-pizza-react",
+  },
 ]
