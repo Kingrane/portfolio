@@ -1,4 +1,4 @@
-import styles from "./hero.module.css";
+import { HeroTitle } from "./hero-title";
 
 export function Hero() {
   return (
@@ -13,22 +13,7 @@ export function Hero() {
             PORTFOLIO — FULL-STACK VIBE DEVELOPER
           </p>
 
-          <h1
-            id="hero-title"
-            data-reading="display"
-            className={`${styles.title} font-display text-[clamp(2.9rem,9.4vw,8.4rem)] font-light leading-[0.92] tracking-[-0.045em] text-white`}
-          >
-            <span className="sr-only">KINGRANE</span>
-            <span aria-hidden className="inline-flex">
-              {Array.from("KINGRANE").map((letter, index) => (
-                <span key={index} className="inline-block overflow-hidden pb-[0.08em] -mb-[0.08em]">
-                  <span className={styles.letter} style={{ animationDelay: `${index * 45}ms` }}>
-                    {letter}
-                  </span>
-                </span>
-              ))}
-            </span>
-          </h1>
+          <HeroTitle />
 
           <p data-reading className="mt-7 max-w-lg text-[15px] leading-relaxed text-ink-dim sm:text-base">
             Full-stack vibe developer. Балуюсь с вебом, 3D, AI.

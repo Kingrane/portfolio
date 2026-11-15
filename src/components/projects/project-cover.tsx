@@ -6,6 +6,36 @@ import styles from "./project-cover.module.css";
 
 const RAMP = " ·.:-=+*#%@";
 const PALETTE = ["#f2efff", "#ffc777", "#cabbff"];
+
+// At most one visible cover is drawn per browser frame. Two wide featured
+// covers keep their 30 fps ceiling without landing on the same WebGL frame.
+type CoverAnimation = { next: number; update: (now: number) => void };
+const animations = new Set<CoverAnimation>();
+let coverFrame = 0;
+function animateCovers(now: number) {
+  coverFrame = 0;
+  let due: CoverAnimation | undefined;
+  for (const animation of animations) {
+    if (animation.next <= now && (!due || animation.next < due.next)) due = animation;
+  }
+  if (due) {
+    due.next = now + 1000 / 30;
+    due.update(now);
+  }
+  if (animations.size) coverFrame = requestAnimationFrame(animateCovers);
+}
+function startCover(animation: CoverAnimation) {
+  animation.next = 0;
+  animations.add(animation);
+  if (!coverFrame) coverFrame = requestAnimationFrame(animateCovers);
+}
+function stopCover(animation: CoverAnimation) {
+  animations.delete(animation);
+  if (!animations.size) {
+    cancelAnimationFrame(coverFrame);
+    coverFrame = 0;
+  }
+}
 const BAYER = [
   0, 48, 12, 60, 3, 51, 15, 63,
   32, 16, 44, 28, 35, 19, 47, 31,
@@ -170,26 +200,39 @@ class AsciiField {
   }
 }
 
+// Positions/normals are fixed: only the two rotation angles change per frame.
+const TORUS = (() => {
+  const points = new Float32Array(Math.ceil(Math.PI * 2 / 0.11) * Math.ceil(Math.PI * 2 / 0.17) * 6);
+  let offset = 0;
+  for (let u = 0; u < Math.PI * 2; u += 0.11) {
+    const cu = Math.cos(u), su = Math.sin(u);
+    for (let v = 0; v < Math.PI * 2; v += 0.17) {
+      const cv = Math.cos(v), sv = Math.sin(v);
+      points[offset++] = (29 + 11 * cv) * cu;
+      points[offset++] = (29 + 11 * cv) * su;
+      points[offset++] = 11 * sv;
+      points[offset++] = cv * cu;
+      points[offset++] = cv * su;
+      points[offset++] = sv;
+    }
+  }
+  return points;
+})();
+
 function drawTorus(f: AsciiField, t: number, px: number, py: number) {
   const ax = 0.9 + py * 0.35;
   const ay = t * 0.25 + px * 0.55;
   const cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay);
   f.ellipse(80, 86, 38, 3, 0.13, 2);
-  for (let u = 0; u < Math.PI * 2; u += 0.11) {
-    const cu = Math.cos(u), su = Math.sin(u);
-    for (let v = 0; v < Math.PI * 2; v += 0.17) {
-      const cv = Math.cos(v), sv = Math.sin(v);
-      const x = (29 + 11 * cv) * cu;
-      const y = (29 + 11 * cv) * su;
-      const z = 11 * sv;
-      const ry = y * cx - z * sx, rz = y * sx + z * cx;
-      const rx = x * cy + rz * sy, depth = -x * sy + rz * cy;
-      const scale = 125 / (125 - depth);
-      const ny = cv * su * cx - sv * sx;
-      const nz = -cv * cu * sy + (cv * su * sx + sv * cx) * cy;
-      const light = Math.max(0.13, 0.35 + nz * 0.5 - ny * 0.24);
-      f.point(80 + rx * scale, 46 + ry * scale, light, light > 0.82 ? 0 : depth > 5 ? 1 : 2, depth);
-    }
+  for (let i = 0; i < TORUS.length; i += 6) {
+    const x = TORUS[i], y = TORUS[i + 1], z = TORUS[i + 2];
+    const ry = y * cx - z * sx, rz = y * sx + z * cx;
+    const rx = x * cy + rz * sy, depth = -x * sy + rz * cy;
+    const scale = 125 / (125 - depth);
+    const ny = TORUS[i + 4] * cx - TORUS[i + 5] * sx;
+    const nz = -TORUS[i + 3] * sy + (TORUS[i + 4] * sx + TORUS[i + 5] * cx) * cy;
+    const light = Math.max(0.13, 0.35 + nz * 0.5 - ny * 0.24);
+    f.point(80 + rx * scale, 46 + ry * scale, light, light > 0.82 ? 0 : depth > 5 ? 1 : 2, depth);
   }
 }
 
@@ -484,14 +527,15 @@ export function ProjectCover({ project }: { project: Project }) {
     const cover = canvas.parentElement;
     const host = canvas.closest("article");
     const atlas = document.createElement("canvas");
-    const atlasCtx = atlas.getContext("2d");
+    const atlasCtx = atlas.getContext("2d", { alpha: false });
     if (!cover || !host || !atlasCtx) return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const connection = (navigator as Navigator & { connection?: DataConnection }).connection;
     const fontFamily = getComputedStyle(canvas).fontFamily;
     let field: AsciiField;
+    let painted: Uint8Array;
     let tileWidth = 0, tileHeight = 0;
-    let frame = 0, lastFrame = 0, time = 0;
+    let lastFrame = 0, lastScroll = -Infinity, time = 0;
     let pointerX = 0, pointerY = 0;
     let visible = false, disposed = false, ready = false;
     let bounds: DOMRect | null = null;
@@ -503,16 +547,19 @@ export function ProjectCover({ project }: { project: Project }) {
       field.clear();
       const still = isStatic();
       scene(field, still ? 0 : time, still ? 0 : pointerX, still ? 0 : pointerY);
-      ctx.fillStyle = "#050507";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
       for (let row = 0; row < field.rows; row++) {
         for (let col = 0; col < field.cols; col++) {
           const index = row * field.cols + col;
           const light = field.light[index];
-          if (light < 0.065) continue;
           const dither = (BAYER[(row % 8) * 8 + col % 8] / 64 - 0.5) * 0.13;
-          const glyph = Math.min(RAMP.length - 1, Math.max(1, Math.floor((light + dither) * (RAMP.length - 1))));
-          ctx.drawImage(atlas, glyph * tileWidth, field.tone[index] * tileHeight, tileWidth, tileHeight, col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+          const glyph = light < 0.065 ? 0 : Math.min(RAMP.length - 1, Math.max(1, Math.floor((light + dither) * (RAMP.length - 1))));
+          const tone = glyph ? field.tone[index] : 0;
+          const tile = tone * RAMP.length + glyph;
+          if (painted[index] === tile) continue;
+          painted[index] = tile;
+          // Opaque atlas tiles also erase vanished glyphs. Unchanged cells and
+          // dark background need neither a clear nor another drawImage call.
+          ctx.drawImage(atlas, glyph * tileWidth, tone * tileHeight, tileWidth, tileHeight, col * tileWidth, row * tileHeight, tileWidth, tileHeight);
         }
       }
       if (!ready) {
@@ -522,29 +569,28 @@ export function ProjectCover({ project }: { project: Project }) {
     };
 
     const stop = () => {
-      cancelAnimationFrame(frame);
-      frame = 0;
+      stopCover(animation);
       lastFrame = 0;
     };
 
     const tick = (now: number) => {
-      frame = 0;
       if (disposed || !visible || document.hidden || isStatic()) return;
-      if (!lastFrame || now - lastFrame >= 1000 / 30 - 0.5) {
-        if (lastFrame) time += Math.min((now - lastFrame) / 1000, 0.08);
-        lastFrame = now;
-        draw();
-      }
-      frame = requestAnimationFrame(tick);
+      // Keep the already painted preview during scrolling, leaving time for
+      // the persistent world and layout; resume quietly after the last event.
+      if (now - lastScroll < 100) { lastFrame = 0; return; }
+      if (lastFrame) time += Math.min((now - lastFrame) / 1000, 0.08);
+      lastFrame = now;
+      draw();
     };
+    const animation: CoverAnimation = { next: 0, update: tick };
 
     const sync = () => {
       stop();
-      if (disposed) return;
+      if (disposed || !visible || document.hidden) return;
       if (isStatic()) {
         time = pointerX = pointerY = 0;
         draw();
-      } else if (visible && !document.hidden) frame = requestAnimationFrame(tick);
+      } else startCover(animation);
     };
 
     const resize = () => {
@@ -563,11 +609,16 @@ export function ProjectCover({ project }: { project: Project }) {
       if (field?.cols === cols && field.rows === rows && canvas.width === tileWidth * cols && canvas.height === tileHeight * rows) return;
       stop();
       bounds = null;
+      ready = false;
+      cover.removeAttribute("data-ready");
       field = new AsciiField(cols, rows);
+      painted = new Uint8Array(cols * rows).fill(255);
       canvas.width = tileWidth * cols;
       canvas.height = tileHeight * rows;
       atlas.width = tileWidth * RAMP.length;
       atlas.height = tileHeight * PALETTE.length;
+      atlasCtx.fillStyle = "#050507";
+      atlasCtx.fillRect(0, 0, atlas.width, atlas.height);
       atlasCtx.font = `${Math.round(tileHeight * 0.94)}px ${fontFamily}`;
       atlasCtx.textAlign = "center";
       atlasCtx.textBaseline = "middle";
@@ -579,8 +630,8 @@ export function ProjectCover({ project }: { project: Project }) {
           atlasCtx.fillText(RAMP[glyph], (glyph + 0.5) * tileWidth, (tone + 0.51) * tileHeight);
         }
       }
-      // Never wait for hover, an observer callback, or the animation to draw a poster.
-      draw();
+      // HTML already supplies an immediate poster. Offscreen covers do not
+      // render scenes at mount; their first visible frame is scheduled too.
       sync();
     };
 
@@ -594,6 +645,7 @@ export function ProjectCover({ project }: { project: Project }) {
       pointerX = pointerY = 0;
       bounds = null;
     };
+    const onScroll = () => { lastScroll = performance.now(); resetPointer(); };
 
     resize();
     const intersection = new IntersectionObserver(([entry]) => {
@@ -609,7 +661,7 @@ export function ProjectCover({ project }: { project: Project }) {
     host.addEventListener("pointerleave", resetPointer);
     host.addEventListener("pointercancel", resetPointer);
     host.addEventListener("pointerup", resetPointer);
-    window.addEventListener("scroll", resetPointer, { passive: true, capture: true });
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     window.addEventListener("resize", resize);
     window.addEventListener("blur", resetPointer);
     document.addEventListener("visibilitychange", sync);
@@ -626,7 +678,7 @@ export function ProjectCover({ project }: { project: Project }) {
       host.removeEventListener("pointerleave", resetPointer);
       host.removeEventListener("pointercancel", resetPointer);
       host.removeEventListener("pointerup", resetPointer);
-      window.removeEventListener("scroll", resetPointer, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", resize);
       window.removeEventListener("blur", resetPointer);
       document.removeEventListener("visibilitychange", sync);

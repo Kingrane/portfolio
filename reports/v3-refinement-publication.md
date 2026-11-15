@@ -6,4 +6,6 @@
 - [Вывод сборки](v3-refinement-publication-build.txt).
 - Рабочая ветка следующего этапа — `main`, в `C:\Users\REDMI\AppData\Local\Temp\opencode\portfolio-main-publish`. Пользовательские изменения в исходной папке `D:\REDMI\vscodik\portfolio` не переносились и не перезаписывались.
 
-Состояние GitHub Actions подтверждается после push. Браузерный/визуальный QA, профилирование микрофризов и отдельный lint/tsc не запускались.
+GitHub Actions [43733824212](https://github.com/Kingrane/portfolio/actions/runs/43733824212) для `3f9f53f` завершился успешно: оба jobs `build` и `deploy`. Hero/сад опубликованы. На момент этой публикации браузерный QA и отдельный lint/tsc не запускались.
+
+Следующий локальный этап — [hover KINGRANE и точечная проверка первых обложек](v3-hover-covers.md); его изменения ещё не опубликованы.

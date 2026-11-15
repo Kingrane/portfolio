@@ -1,0 +1,84 @@
+// Isolated Playwright page; reload before each run. Measures only the first row.
+async (page) => {
+  await page.mouse.move(1390, 880);
+  await page.evaluate(async () => { await document.fonts.ready; window.scrollTo(0, 1460); });
+  await page.waitForFunction(() => Math.abs(scrollY - 1460) < 3 && [...document.querySelectorAll('#projects article')].slice(0, 2).every(a => a.querySelector('[data-ready]')));
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    const targets = [...document.querySelectorAll('#projects article')].slice(0, 2).map(a => a.querySelector('canvas'));
+    const originalRAF = window.requestAnimationFrame;
+    const originalDraw = CanvasRenderingContext2D.prototype.drawImage;
+    const originalFill = CanvasRenderingContext2D.prototype.fillRect;
+    const state = { active: null, current: null, originalRAF, targets, samples: [], longTasks: [], callbacks: new WeakSet() };
+    window.__focused = state;
+    window.requestAnimationFrame = function(callback) {
+      return originalRAF.call(window, (now) => {
+        const before = performance.now();
+        const current = { now, ids: new Set(), draws: [0, 0], fills: [0, 0] };
+        state.current = current;
+        try { callback(now); }
+        finally {
+          state.current = null;
+          if (current.ids.size) state.callbacks.add(callback);
+          if (state.active && state.callbacks.has(callback)) state.samples.push({ phase: state.active, now, duration: performance.now() - before, ids: [...current.ids], draws: current.draws, fills: current.fills });
+        }
+      });
+    };
+    CanvasRenderingContext2D.prototype.drawImage = function(...args) {
+      const index = targets.indexOf(this.canvas);
+      if (state.current && index >= 0) { state.current.ids.add(index); state.current.draws[index]++; }
+      return originalDraw.apply(this, args);
+    };
+    CanvasRenderingContext2D.prototype.fillRect = function(...args) {
+      const index = targets.indexOf(this.canvas);
+      if (state.current && index >= 0) { state.current.ids.add(index); state.current.fills[index]++; }
+      return originalFill.apply(this, args);
+    };
+    state.observer = new PerformanceObserver(list => {
+      if (state.active) for (const task of list.getEntries()) state.longTasks.push({ phase: state.active, start: task.startTime, duration: task.duration });
+    });
+    state.observer.observe({ type: 'longtask' });
+  });
+  const phases = [];
+  for (const name of ['idle', 'scroll']) {
+    phases.push(await page.evaluate(async (name) => {
+      const state = window.__focused;
+      const deltas = [];
+      let last = 0, frame, start = performance.now();
+      state.active = name;
+      await new Promise(resolve => {
+        const tick = now => {
+          if (last) deltas.push(now - last);
+          last = now;
+          if (name === 'scroll') window.scrollTo(0, 1400 + 80 * Math.sin((now - start) / 450));
+          if (now - start < 5000) frame = state.originalRAF.call(window, tick);
+          else resolve();
+        };
+        frame = state.originalRAF.call(window, tick);
+      });
+      state.active = null;
+      const samples = state.samples.filter(s => s.phase === name);
+      const sorted = samples.map(s => s.duration).sort((a, b) => a - b);
+      const intervals = deltas.slice().sort((a, b) => a - b);
+      return { name, elapsed: performance.now() - start, scrollY,
+        rafIntervals: { count: deltas.length, median: intervals[Math.floor(intervals.length * .5)], p95: intervals[Math.floor(intervals.length * .95)], over50: deltas.filter(d => d > 50).length },
+        coverCallbacks: { count: samples.length, totalMs: sorted.reduce((a,b) => a+b,0), p95: sorted[Math.floor(sorted.length * .95)] ?? 0, max: sorted.at(-1) ?? 0,
+          drawCalls: [0,1].map(i => samples.reduce((sum,s) => sum+s.draws[i],0)), clears: [0,1].map(i => samples.reduce((sum,s) => sum+s.fills[i],0)), bothInOneCallback: samples.filter(s => s.ids.length > 1).length,
+          bothInOneFrame: [...new Set(samples.map(s => s.now))].filter(now => new Set(samples.filter(s => s.now === now).flatMap(s=>s.ids)).size > 1).length },
+        longTasks: state.longTasks.filter(s => s.phase === name), samples, deltas };
+    }, name));
+    await page.evaluate(() => window.scrollTo(0,1460));
+    await page.waitForTimeout(1000);
+  }
+  const environment = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-qa-webgl]');
+    const gl = canvas?.getContext('webgl2');
+    const extension = gl?.getExtension('WEBGL_debug_renderer_info');
+    return { visibility: document.visibilityState, viewport:[innerWidth,innerHeight], dpr:devicePixelRatio, renderer: extension ? gl.getParameter(extension.UNMASKED_RENDERER_WEBGL) : null,
+      contextLost: gl?.isContextLost(), visibleCovers: [...document.querySelectorAll('#projects article canvas')].filter(c => { const r = c.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; }).length,
+      covers:[...document.querySelectorAll('#projects article')].slice(0,2).map(a=>({ title:a.querySelector('h3').textContent, ready:!!a.querySelector('[data-ready]'), size:[a.querySelector('canvas').width,a.querySelector('canvas').height] })) };
+  });
+  const result = { url:page.url(), environment, phases };
+  await page.evaluate(result => { window.__focusedResult = result; }, result);
+  return { ...result, phases: phases.map(({samples,deltas,...phase})=>phase) };
+}

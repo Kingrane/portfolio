@@ -1,0 +1,192 @@
+﻿[
+    {
+        "version":  "baseline",
+        "url":  "http://127.0.0.1:4183/portfolio/",
+        "environment":  {
+                            "visibility":  "visible",
+                            "viewport":  [
+                                             1440,
+                                             900
+                                         ],
+                            "dpr":  1,
+                            "renderer":  "ANGLE (Intel, Intel(R) Arc(TM) 140T GPU (16GB) (0x00007D51) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+                            "contextLost":  false,
+                            "visibleCovers":  2,
+                            "covers":  [
+                                           {
+                                               "title":  "holoterm",
+                                               "ready":  true,
+                                               "size":  [
+                                                            730,
+                                                            450
+                                                        ]
+                                           },
+                                           {
+                                               "title":  "Bobik-2B",
+                                               "ready":  true,
+                                               "size":  [
+                                                            510,
+                                                            320
+                                                        ]
+                                           }
+                                       ]
+                        },
+        "phases":  [
+                       {
+                           "name":  "idle",
+                           "elapsed":  5007.29999999702,
+                           "scrollY":  1460,
+                           "rafIntervals":  {
+                                                "count":  585,
+                                                "median":  8.300000000000182,
+                                                "p95":  8.400000000000546,
+                                                "over50":  1
+                                            },
+                           "coverCallbacks":  {
+                                                  "count":  1168,
+                                                  "totalMs":  488.20000000298023,
+                                                  "p95":  2.399999998509884,
+                                                  "max":  4.799999997019768,
+                                                  "drawCalls":  [
+                                                                    105046,
+                                                                    58012
+                                                                ],
+                                                  "clears":  [
+                                                                 149,
+                                                                 149
+                                                             ],
+                                                  "bothInOneCallback":  0,
+                                                  "bothInOneFrame":  149
+                                              },
+                           "longTasks":  [
+
+                                         ]
+                       },
+                       {
+                           "name":  "scroll",
+                           "elapsed":  5011.30000000447,
+                           "scrollY":  1320.5,
+                           "rafIntervals":  {
+                                                "count":  572,
+                                                "median":  8.300000000001091,
+                                                "p95":  8.5,
+                                                "over50":  2
+                                            },
+                           "coverCallbacks":  {
+                                                  "count":  1146,
+                                                  "totalMs":  440.0999998822808,
+                                                  "p95":  2.100000001490116,
+                                                  "max":  3.399999998509884,
+                                                  "drawCalls":  [
+                                                                    116809,
+                                                                    57560
+                                                                ],
+                                                  "clears":  [
+                                                                 148,
+                                                                 148
+                                                             ],
+                                                  "bothInOneCallback":  0,
+                                                  "bothInOneFrame":  148
+                                              },
+                           "longTasks":  [
+
+                                         ]
+                       }
+                   ]
+    },
+    {
+        "version":  "updated",
+        "url":  "http://127.0.0.1:4184/portfolio/",
+        "environment":  {
+                            "visibility":  "visible",
+                            "viewport":  [
+                                             1440,
+                                             900
+                                         ],
+                            "dpr":  1,
+                            "renderer":  "ANGLE (Intel, Intel(R) Arc(TM) 140T GPU (16GB) (0x00007D51) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+                            "contextLost":  false,
+                            "visibleCovers":  2,
+                            "covers":  [
+                                           {
+                                               "title":  "holoterm",
+                                               "ready":  true,
+                                               "size":  [
+                                                            730,
+                                                            450
+                                                        ]
+                                           },
+                                           {
+                                               "title":  "Bobik-2B",
+                                               "ready":  true,
+                                               "size":  [
+                                                            510,
+                                                            320
+                                                        ]
+                                           }
+                                       ]
+                        },
+        "phases":  [
+                       {
+                           "name":  "idle",
+                           "elapsed":  5025.5999999940395,
+                           "scrollY":  1460,
+                           "rafIntervals":  {
+                                                "count":  599,
+                                                "median":  8.300000000000182,
+                                                "p95":  8.5,
+                                                "over50":  0
+                                            },
+                           "coverCallbacks":  {
+                                                  "count":  596,
+                                                  "totalMs":  108.20000002533197,
+                                                  "p95":  0.7000000029802322,
+                                                  "max":  1.6000000014901161,
+                                                  "drawCalls":  [
+                                                                    13508,
+                                                                    273
+                                                                ],
+                                                  "clears":  [
+                                                                 0,
+                                                                 0
+                                                             ],
+                                                  "bothInOneCallback":  0,
+                                                  "bothInOneFrame":  0
+                                              },
+                           "longTasks":  [
+
+                                         ]
+                       },
+                       {
+                           "name":  "scroll",
+                           "elapsed":  5006.69999999553,
+                           "scrollY":  1320.5,
+                           "rafIntervals":  {
+                                                "count":  555,
+                                                "median":  8.300000000001091,
+                                                "p95":  8.5,
+                                                "over50":  5
+                                            },
+                           "coverCallbacks":  {
+                                                  "count":  556,
+                                                  "totalMs":  6.100000001490116,
+                                                  "p95":  0.10000000149011612,
+                                                  "max":  0.3999999985098839,
+                                                  "drawCalls":  [
+                                                                    0,
+                                                                    0
+                                                                ],
+                                                  "clears":  [
+                                                                 0,
+                                                                 0
+                                                             ],
+                                                  "bothInOneCallback":  0,
+                                                  "bothInOneFrame":  0
+                                              },
+                           "longTasks":  [
+
+                                         ]
+                       }
+                   ]
+    }
+]

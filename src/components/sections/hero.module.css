@@ -4,8 +4,18 @@
 }
 
 .title {
+  position: relative;
   color: #fff;
   text-shadow: 0 2px 3px #050507, 0 0 10px rgba(5, 5, 7, 0.65);
+}
+
+.titleCanvas {
+  position: absolute;
+  inset: -32px;
+  z-index: 1;
+  width: calc(100% + 64px);
+  height: calc(100% + 64px);
+  pointer-events: none;
 }
 
 /* Also works with poster-only/reduced-motion rendering; no moving DOM text. */
