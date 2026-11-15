@@ -26,7 +26,7 @@ export const blackholeFragment = /* glsl */ `
   uniform float uPulse;    // 0 = inactive; otherwise shockwave progress 0..1.
   uniform float uIntro;
   uniform float uQuality;  // Controls disk detail and the second star layer.
-  uniform int uSteps;      // 80..96 desktop, 32..40 mobile; 0 uses a fallback.
+  uniform int uSteps;      // 64..96 desktop, 32..40 mobile; 0 uses a fallback.
   uniform vec2 uResolution; // Actual HDR target size in pixels, independent of DPR.
   uniform float uOpacity;
   uniform float uDive;     // 0..1: eased approach to r=1.04, with gradual redshift.
@@ -34,6 +34,13 @@ export const blackholeFragment = /* glsl */ `
   uniform vec2 uCenter;    // (uv - .5) * vec2(aspect, 1), not normalized UV.
 
   ${glslNoise}
+
+  // The brief's sRGB palette decoded once to linear HDR. ACES must receive
+  // linear light, not the undecoded hex components.
+  const vec3 DISK_LAVENDER = vec3(0.887923, 0.830770, 1.0); // #F2EBFF
+  const vec3 DISK_VIOLET = vec3(0.274677, 0.147027, 1.0);   // #8F6BFF
+  const vec3 DISK_INDIGO = vec3(0.043735, 0.023153, 0.332452); // #3B2A9C
+  const vec3 DISK_AMBER = vec3(1.0, 0.450786, 0.063010);    // #FFB347
 
   vec3 acceleration(vec3 position, float angularMomentum2) {
     float inverseR = inversesqrt(max(dot(position, position), 0.25));
@@ -70,7 +77,7 @@ export const blackholeFragment = /* glsl */ `
     float planeT = abs(dy) > 0.0001 ? clamp(-start.y / dy, 0.0, 1.0) : 0.5;
     vec3 hit = mix(start, end, planeT);
     float radius = length(hit.xz);
-    float edgeAA = max(0.015, beamWidth);
+    float edgeAA = max(0.018, beamWidth * 1.1);
     if (radius < 2.6 - edgeAA || radius > 9.0 + edgeAA) return;
 
     float height = 0.028 + 0.007 * radius;
@@ -115,16 +122,66 @@ export const blackholeFragment = /* glsl */ `
     float towardObserver = dot(orbitalDirection, -normalize(velocity));
     float doppler = pow(max(0.24, 1.0 + orbitalSpeed * towardObserver), 3.0);
     float gravitationalShift = sqrt(1.0 - 1.0 / radius);
-    vec3 tint = mix(vec3(1.0, 0.86, 0.67), vec3(1.0, 0.37, 0.075),
-      smoothstep(2.8, 6.2, radius));
-    tint = mix(tint, vec3(1.0, 0.23, 0.025), smoothstep(6.0, 9.0, radius));
-    vec3 emission = tint * (6.0 * pow(2.6 / radius, 1.8)) * structure
+    vec3 tint = mix(DISK_LAVENDER, DISK_VIOLET, smoothstep(2.75, 4.8, radius));
+    tint = mix(tint, DISK_INDIGO, smoothstep(4.8, 8.4, radius));
+    // Orbital motion approaches the observer on screen-right. Amber lives in
+    // that narrow hot sector, not in a screen-space painted crescent. The same
+    // emitting volume supplies the bent back face and higher-order images.
+    float hotSector = smoothstep(0.5, 0.86, towardObserver)
+      * smoothstep(2.9, 3.5, radius) * (1.0 - smoothstep(6.1, 7.3, radius));
+    float innerRim = 1.0 - smoothstep(2.76, 3.04, radius);
+    tint = mix(tint, DISK_AMBER, clamp(hotSector * 0.82 + innerRim * 0.13, 0.0, 0.85));
+    float receding = (1.0 - smoothstep(-0.45, 0.25, towardObserver))
+      * smoothstep(3.2, 5.8, radius);
+    tint = mix(tint, DISK_INDIGO, receding * 0.18);
+    // Keep a wide indigo outskirts, but let their light die before r=9 rather
+    // than turning the whole viewport into a luminous orange fog.
+    float outerFalloff = 1.0 - smoothstep(6.4, 9.0, radius);
+    vec3 emission = tint * (6.2 * pow(2.6 / radius, 1.8)) * structure * outerFalloff
       * doppler * gravitationalShift * gravitationalShift * gravitationalShift;
 
     float opticalDepth = min(3.0, column * edges * (0.16 + 0.15 * structure));
     float alpha = 1.0 - exp(-opticalDepth);
     radiance += transmission * alpha * emission;
     transmission *= 1.0 - alpha;
+  }
+
+  vec3 sphericalStarCell(
+    vec2 id, vec2 offset, float scale, float seed, float cosLatitude, vec3 covariance
+  ) {
+    // Canonical longitude IDs make the hash field periodic at +/- pi.
+    id.x = mod(id.x, scale);
+    if (id.y < 0.0 || id.y >= scale * 0.5) return vec3(0.0);
+    vec2 key = id + vec2(seed, seed * 1.73);
+    float exists = step(scale < 900.0 ? 0.84 : 0.91, hash21(key + vec2(5.19, 12.71)));
+    if (exists < 0.5) return vec3(0.0);
+    vec2 center = 0.2 + 0.6 * hash22(key + vec2(23.1, 8.7));
+    offset -= center;
+    offset.x *= cosLatitude;
+
+    float size = mix(0.03, 0.08, pow(hash21(key + vec2(41.3, 79.7)), 2.0));
+    float size2 = size * size;
+    float varianceX = size2 + covariance.x;
+    float varianceY = size2 + covariance.z;
+    float determinant = max(0.000000001, varianceX * varianceY - covariance.y * covariance.y);
+    float distance2 = (varianceY * offset.x * offset.x
+      - 2.0 * covariance.y * offset.x * offset.y + varianceX * offset.y * offset.y) / determinant;
+    if (distance2 > 16.0) return vec3(0.0);
+    float core = exp(-distance2) * size2 * inversesqrt(determinant);
+    core *= 1.0 - smoothstep(9.0, 16.0, distance2);
+
+    // Independent luminosity, spectrum, phase and frequency: mostly tiny cool
+    // points, scattered warm stars and a few brighter reference stars.
+    float brightness = mix(0.35, 3.8, pow(hash21(key + vec2(61.7, 3.9)), 4.0));
+    float amplitude = 0.08 + 0.14 * hash21(key + vec2(91.1, 17.3));
+    float phase = TAU * hash21(key + vec2(7.7, 137.9));
+    float frequency = 0.33 + 1.63 * hash21(key + vec2(173.3, 47.1));
+    float twinkle = 1.0 - amplitude + amplitude * sin(uTime * frequency + phase);
+    float spectrum = hash21(key + vec2(113.7, 53.9));
+    vec3 tint = mix(vec3(0.56, 0.72, 1.0), vec3(1.0, 0.96, 0.91),
+      smoothstep(0.08, 0.72, spectrum));
+    tint = mix(tint, vec3(1.0, 0.67, 0.38), smoothstep(0.78, 0.98, spectrum));
+    return tint * core * brightness * twinkle;
   }
 
   vec3 sphericalStarLayer(vec3 direction, float angularPixel, float scale, float seed) {
@@ -134,36 +191,40 @@ export const blackholeFragment = /* glsl */ `
     );
     vec2 grid = spherical * vec2(scale, scale * 0.5);
     vec2 id = floor(grid);
-    // Canonical longitude IDs make the hash field periodic at +/- pi.
-    id.x = mod(id.x, scale);
-    id.y = clamp(id.y, 0.0, scale * 0.5 - 1.0);
-    vec2 key = id + vec2(seed, seed * 1.73);
-    float exists = step(0.94, hash21(key + vec2(5.19, 12.71)));
-    vec2 center = 0.2 + 0.6 * hash22(key + vec2(23.1, 8.7));
-    vec2 offset = fract(grid) - center;
-    offset.x *= max(0.12, cos((spherical.y - 0.5) * PI));
-
-    float size = mix(0.03, 0.065, hash21(key + vec2(41.3, 79.7)));
-    float aa = max(0.008, angularPixel * scale / TAU);
-    float variance = size * size + aa * aa * 0.5;
-    float core = exp(-dot(offset, offset) / variance) * size * size / variance;
-    core *= 1.0 - smoothstep(3.0 * sqrt(variance), 4.0 * sqrt(variance), length(offset));
-
-    // Four different seeds: brightness, oscillation amplitude, phase and
-    // frequency are independent. Even the deepest twinkle stays >= 0.56.
-    float brightness = mix(0.8, 2.1, pow(hash21(key + vec2(61.7, 3.9)), 3.0));
-    float amplitude = 0.1 + 0.12 * hash21(key + vec2(91.1, 17.3));
-    float phase = TAU * hash21(key + vec2(7.7, 137.9));
-    float frequency = 0.33 + 1.63 * hash21(key + vec2(173.3, 47.1));
-    float twinkle = 1.0 - amplitude + amplitude * sin(uTime * frequency + phase);
-    vec3 tint = mix(vec3(0.94, 0.92, 0.88), vec3(1.0, 0.69, 0.32),
-      pow(hash21(key + vec2(113.7, 53.9)), 6.0));
-    return tint * exists * core * brightness * twinkle;
+    float cosLatitude = max(0.12, length(direction.xz));
+    vec3 longitude = normalize(vec3(-direction.z, 0.0, direction.x) + vec3(0.000001, 0.0, 0.0));
+    vec3 latitude = normalize(cross(longitude, direction));
+    vec3 dx = dFdx(direction);
+    vec3 dy = dFdy(direction);
+    vec2 gx = vec2(dot(dx, longitude), dot(dx, latitude)) * (scale / TAU);
+    vec2 gy = vec2(dot(dy, longitude), dot(dy, latitude)) * (scale / TAU);
+    float beam = max(0.006, angularPixel * scale / TAU * 0.35);
+    // Full covariance, not max(dFdx,dFdy) as an isotropic blur. A source stays
+    // sharp along its stretched image instead of fading away near the lens.
+    vec3 covariance = vec3(gx.x * gx.x + gy.x * gy.x,
+      gx.x * gx.y + gy.x * gy.y, gx.y * gx.y + gy.y * gy.y) * 0.35;
+    covariance.xz += vec2(beam * beam);
+    vec2 offset = fract(grid);
+    vec3 stars = sphericalStarCell(id, offset, scale, seed, cosLatitude, covariance);
+    // Only highly deflected pixels need neighbouring source cells. This keeps
+    // the far field cheap and avoids grid-clipped arcs at the Einstein images.
+    if (max(covariance.x, covariance.z) > 0.02) {
+      for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+          if (x == 0 && y == 0) continue;
+          vec2 neighbour = vec2(float(x), float(y));
+          stars += sphericalStarCell(id + neighbour, offset - neighbour,
+            scale, seed, cosLatitude, covariance);
+        }
+      }
+    }
+    return stars;
   }
 
   void main() {
     if (uOpacity < 0.0001 || uIntro <= 0.0) {
       gl_FragColor = vec4(0.0);
+      cleanStars = vec4(0.0);
       return;
     }
 
@@ -180,8 +241,8 @@ export const blackholeFragment = /* glsl */ `
       // Refraction only: no painted luminous circle over the physical image.
       p += p / max(length(p), 0.001) * wave * 0.009;
     }
-    // Standard derivatives are available to Three's GLSL1 ShaderMaterial on
-    // WebGL2. The fallback also supports the previous uniform contract.
+    // Standard derivatives are available to the GLSL3 MRT material on WebGL2.
+    // The fallback also supports the previous uniform contract.
     vec2 pixelSpan = vec2(uAspect, 1.0) * max(0.15, uZoom) / max(uResolution, vec2(1.0));
     float rayCone = uResolution.y > 1.0
       ? 0.6 * max(pixelSpan.x, pixelSpan.y)
@@ -268,15 +329,16 @@ export const blackholeFragment = /* glsl */ `
 
     // Evaluate sky derivatives after all lanes leave the adaptive loop.
     // Directions, not longitude UVs, keep AA continuous at the spherical seam.
-    float angularPixel = max(rayCone,
-      max(length(dFdx(skyDirection)), length(dFdy(skyDirection))));
-    vec3 stars = sphericalStarLayer(skyDirection, angularPixel, 180.0, 3.1);
+    float angularPixel = rayCone;
+    vec3 stars = sphericalStarLayer(skyDirection, angularPixel, 620.0, 3.1);
     if (uQuality > 0.4) {
-      stars += 0.65 * sphericalStarLayer(skyDirection, angularPixel, 310.0, 47.7);
+      stars += 0.72 * sphericalStarLayer(skyDirection, angularPixel, 1080.0, 47.7);
     }
     // Coverage is disk emission only. The post pass must never infer it from
     // the combined sky color: a lensed star is still a clean star, not a petal.
-    float diskCoverage = smoothstep(0.001, 0.025, dot(radiance, vec3(0.2126, 0.7152, 0.0722)));
+    // A blue-violet emitter has low photopic luminance. Coverage follows its
+    // strongest emitting channel so its outskirts do not lose their ASCII mask.
+    float diskCoverage = smoothstep(0.0004, 0.012, max(max(radiance.r, radiance.g), radiance.b));
     vec3 skyRadiance = escaped ? transmission * stars : vec3(0.0);
     radiance += skyRadiance;
 

@@ -26,14 +26,14 @@ export interface Project {
 export const projects: Project[] = [
   {
     title: "Bobik-2B",
-    description: "", // Draft retained in COPY_TO_APPROVE.md until approved.
+    description: "Русская чат-модель на базе Qwen, дообученная через Unsloth.",
     tech: ["Python", "Qwen3.5-2B", "Unsloth", "LoRA", "GGUF"],
     href: "https://huggingface.co/Kingrane/Bobik-2B",
     group: "vibe",
   },
   {
     title: "holoterm",
-    description: "", // Draft retained in COPY_TO_APPROVE.md until approved.
+    description: "3D-графика прямо в терминале. Свой растеризатор с Z-буфером, освещением и ANSI TrueColor.",
     tech: ["Node.js", "JavaScript", "ANSI TrueColor", "Canvas API"],
     href: "https://www.npmjs.com/package/holoterm",
     repo: "https://github.com/Kingrane/holoterm",

@@ -1,5 +1,6 @@
 /** CSS pixels, top-left origin. Slot 0 belongs to the pointer; no hover rings. */
 export const MAX_ASCII_EMITTERS = 8;
+export const BUTTERFLY_TRAIL_SAMPLES = 20;
 export const asciiSources = {
   emitters: new Float32Array(MAX_ASCII_EMITTERS * 4),
   /** Projected constellation nodes; sampled through one small mask texture. */
@@ -7,7 +8,11 @@ export const asciiSources = {
   nodeCount: 0,
   garden: null as Scene | null,
   hole: null as Texture | null,
+  /** Published by the physical renderer: CSS center x/y, shadow and outskirts. */
+  holeBounds: new Float32Array(4),
   cleanStars: null as Texture | null,
+  /** Two real butterfly histories: CSS x/y, birth seconds, CSS radius. */
+  butterflyTrail: new Float32Array(2 * BUTTERFLY_TRAIL_SAMPLES * 4),
 };
 
 export function setAsciiEmitter(slot: number, x: number, y: number, radius: number, strength: number): void {

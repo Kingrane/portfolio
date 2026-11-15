@@ -10,6 +10,8 @@ import { Starfield } from "./worlds/starfield";
 import { Constellations } from "./worlds/constellations";
 import { Garden } from "./worlds/garden";
 import { WorldPost } from "./effects/world-post";
+import { SceneEvents } from "./effects/scene-events";
+import { Butterflies } from "./worlds/butterflies";
 import { pointerState, viewState } from "@/lib/store";
 import { sampleTimeline, worldState } from "@/scene/timeline";
 import { languages, technologies } from "@/content/stack";
@@ -58,8 +60,8 @@ export default function Scene() {
     };
   }, []);
 
-  const starCount = quality >= 0.5 ? (isNarrow ? 700 : 1400) : isNarrow ? 320 : 600;
-  const flowerCount = quality >= 0.5 ? (isNarrow ? 170 : 360) : isNarrow ? 90 : 180;
+  const starCount = quality >= 0.5 ? (isNarrow ? 1800 : 4200) : isNarrow ? 700 : 1600;
+  const flowerCount = quality >= 0.5 ? (isNarrow ? 22 : 75) : isNarrow ? 14 : 44;
   const cell = isNarrow ? 11 : 10;
 
   return (
@@ -106,10 +108,12 @@ export default function Scene() {
           <Suspense fallback={null}>
             <Constellations count={languages.length + technologies.length} />
             <Garden count={flowerCount} />
+            <Butterflies />
           </Suspense>
         </PerformanceMonitor>
 
-        <WorldPost cell={cell} />
+        <WorldPost cell={cell} quality={quality} />
+        <SceneEvents />
       </Canvas>
     </div>
   );

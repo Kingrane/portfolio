@@ -1,6 +1,19 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import type { PointerEvent } from "react";
+import styles from "./marquee.module.css";
+
+function tilt(event: PointerEvent<HTMLLIElement>) {
+  if (event.pointerType === "touch" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // Measure on ENTER as well as MOVE: first hover needs no priming event.
+  const box = event.currentTarget.getBoundingClientRect();
+  const x = Math.max(-1, Math.min(1, (event.clientX - box.left) / box.width * 2 - 1));
+  const y = Math.max(-1, Math.min(1, (event.clientY - box.top) / box.height * 2 - 1));
+  event.currentTarget.style.setProperty("--stack-rx", `${-y * 3}deg`);
+  event.currentTarget.style.setProperty("--stack-ry", `${x * 3}deg`);
+  event.currentTarget.style.setProperty("--stack-lift", "-2px");
+}
 
 export interface MarqueeItem {
   name: string;
@@ -45,7 +58,15 @@ export function Marquee({
             {items.map((item) => (
               <li
                 key={item.name}
+                onPointerEnter={tilt}
+                onPointerMove={tilt}
+                onPointerLeave={(event) => {
+                  event.currentTarget.style.setProperty("--stack-rx", "0deg");
+                  event.currentTarget.style.setProperty("--stack-ry", "0deg");
+                  event.currentTarget.style.setProperty("--stack-lift", "0px");
+                }}
                 className={cn(
+                  styles.item,
                   "flex items-center gap-4 px-6 py-5 text-ink-dim transition-colors duration-300 hover:text-amber motion-reduce:px-3 motion-reduce:py-3 motion-reduce:transition-none sm:px-8 sm:py-6",
                   itemClassName,
                 )}

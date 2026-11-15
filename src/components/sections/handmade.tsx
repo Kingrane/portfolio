@@ -1,11 +1,18 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { SectionShell } from "@/components/ui/section-shell";
 import { Reveal } from "@/components/ui/reveal";
 import { handmadeProjects } from "@/content/projects";
+import { gardenState } from "@/scene/garden-state";
+import styles from "./handmade.module.css";
 
 export function Handmade() {
+  useEffect(() => () => { gardenState.active = -1; }, []);
+
   return (
-    <SectionShell id="garden">
-      <Reveal>
+    <SectionShell id="garden" bleed className={styles.section}>
+      <Reveal className={styles.copy}>
         <div className="mb-10 w-fit max-w-full">
           <h2 data-reading className="max-w-xl font-display text-[clamp(2rem,4.6vw,3.6rem)] font-light leading-[1.06] tracking-[-0.03em] text-ink">
             А тут <span className="whitespace-nowrap">я не вайбкодил</span>
@@ -30,13 +37,37 @@ function GardenRow({
   project: (typeof handmadeProjects)[number];
   index: number;
 }) {
+  const hovered = useRef(false);
+  const focused = useRef(false);
+
   return (
-    <li className="group relative border-b border-line">
+    <li className={`group relative border-b border-line ${styles.row}`}>
       <a
         href={project.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative grid grid-cols-[auto_1fr_auto] items-baseline gap-x-4 gap-y-2 px-4 py-6 sm:grid-cols-[48px_1fr_auto] sm:gap-x-6 sm:px-6"
+        className={styles.link}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "touch") return;
+          hovered.current = true;
+          gardenState.active = index;
+        }}
+        onPointerLeave={() => {
+          hovered.current = false;
+          if (!focused.current && gardenState.active === index) gardenState.active = -1;
+        }}
+        onPointerCancel={() => {
+          hovered.current = false;
+          if (!focused.current && gardenState.active === index) gardenState.active = -1;
+        }}
+        onFocus={() => {
+          focused.current = true;
+          gardenState.active = index;
+        }}
+        onBlur={() => {
+          focused.current = false;
+          if (!hovered.current && gardenState.active === index) gardenState.active = -1;
+        }}
       >
         <span aria-hidden className="font-mono text-[11px] tracking-[0.04em] text-ink-dim">
           {String(index + 1).padStart(2, "0")}

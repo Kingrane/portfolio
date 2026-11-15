@@ -34,7 +34,8 @@ export const outputFragment = /* glsl */ `
       uWorld.z * 0.18 * gardenCoverage(uv));
     area = max(area, uWorld.w);
     float amount = area * uDither * (1.0 - readingMask(uv)) * (1.0 - uDebugFull);
-    float starEnergy = dot(texture2D(uCleanStars, uv).rgb * uWorld.x + texture2D(uFieldStars, uv).rgb, vec3(1.0));
+    float starEnergy = dot(texture2D(uCleanStars, uv).rgb * uWorld.x
+      + texture2D(uFieldStars, uv).rgb * (1.0 - uWorld.x), vec3(1.0));
     amount *= 1.0 - step(0.00001, starEnergy) * (1.0 - uWorld.w);
     // Visible Bayer at illuminated edges; 5-level posterization during a dive.
     // Hue is retained by quantizing intensity rather than separate RGB channels.

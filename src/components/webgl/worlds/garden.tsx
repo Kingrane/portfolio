@@ -2,15 +2,18 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { pointerState } from "@/lib/store";
-import { worldState } from "@/scene/timeline";
+import { smoothstep, worldState } from "@/scene/timeline";
 import { readingInfluence } from "@/scene/reading-zones";
 import { asciiSources } from "@/scene/ascii-sources";
+import { asciiEvents } from "@/scene/ascii-events";
+import { gardenState } from "@/scene/garden-state";
 import { hashString, mulberry32 } from "@/lib/ascii";
 import {
   flowerVertex, flowerFragment, foliageVertex, foliageFragment,
   flowerCoreVertex, flowerCoreFragment,
+  gardenVisibilityFragment,
 } from "../shaders/flowers";
 
 const fireflyVertex = /* glsl */ `
@@ -18,33 +21,46 @@ const fireflyVertex = /* glsl */ `
   uniform float uTime;
   uniform float uPixelRatio;
   uniform float uFade;
+  uniform float uAspect;
   varying float vGlow;
+  varying vec4 vGardenClip;
   void main() {
-    float s = aSeed * 6.28;
+    float s = aSeed * 6.2831853;
+    float t = uTime * (0.22 + 0.09 * aSeed);
     vec3 p = position;
-    p.x += sin(uTime * 0.35 + s) * 1.1;
-    p.y += sin(uTime * 0.28 + s * 1.7) * 0.6;
-    p.z += cos(uTime * 0.31 + s * 1.3) * 0.8;
+    p.x = p.x * uAspect + sin(t + s) * (0.28 + 0.34 * aSeed) + sin(t * 1.73 + s * 2.1) * 0.17;
+    p.y += sin(t * 0.79 + s * 1.7) * 0.26 + cos(t * 1.37 + s * 2.3) * 0.1;
+    p.z += cos(t * 0.87 + s * 1.3) * 0.42 + sin(t * 1.51 + s) * 0.12;
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
-    gl_PointSize = min(7.0 * uPixelRatio,
-      (1.4 + sin(uTime * 2.0 + s * 3.0) * 0.6) * uPixelRatio * 26.0 / max(1.0, -mv.z));
+    gl_PointSize = min(42.0 * uPixelRatio, max(13.0 * uPixelRatio,
+      (19.0 + 13.0 * aSeed) * uPixelRatio * 8.0 / max(2.0, -mv.z)));
     gl_Position = projectionMatrix * mv;
-    vGlow = (0.3 + 0.7 * (0.5 + 0.5 * sin(uTime * 1.6 + s * 5.0))) * uFade;
+    vGardenClip = gl_Position;
+    vGlow = clamp(0.62 + 0.25 * sin(t * 2.27 + s * 5.0)
+      + 0.18 * sin(t * 3.91 + s * 1.3), 0.16, 1.0) * uFade;
   }
 `;
 
 const fireflyFragment = /* glsl */ `
+  ${gardenVisibilityFragment}
   varying float vGlow;
   uniform vec3 uColor;
   void main() {
-    float a = pow(1.0 - smoothstep(0.0, 0.5, length(gl_PointCoord - 0.5)), 1.6) * vGlow;
-    if (a < 0.01) discard;
-    gl_FragColor = vec4(uColor, a);
+    float radius = length(gl_PointCoord - 0.5);
+    float core = exp(-radius * radius * 650.0);
+    float aura = exp(-radius * 9.0) * (1.0 - smoothstep(0.32, 0.5, radius)) * 0.22;
+    float a = (core + aura) * vGlow * gardenVisibility();
+    if (a < 0.002) discard;
+    gl_FragColor = vec4(uColor * (1.0 + core * 0.9), a);
   }
 `;
 
-const GROUND_OFFSET = 3.8;
+export const GARDEN_GROUND_OFFSET = 3.8;
 const HALF_FOV = Math.tan(55 * Math.PI / 360);
+const FEATURED_X = [0.46, 0.76, 0.38, 0.8];
+const FEATURED_HEIGHT = [1.12, 0.88, 0.69, 1.31];
+const MOBILE_FEATURED_X = [-0.69, -0.22, 0.23, 0.68];
+const MOBILE_FEATURED_HEIGHT = [0.39, 0.33, 0.43, 0.36];
 const SPECIES = [
   { petals: 5, colors: ["#9b78ef", "#b99aff", "#7961db"], throat: "#493078", tip: "#dbc7ff", width: 0.47, cup: 0.27 },
   { petals: 7, colors: ["#e66aa8", "#f598c0", "#c8468c"], throat: "#91365f", tip: "#ffd5e9", width: 0.34, cup: 0.13 },
@@ -62,6 +78,7 @@ interface Flower {
   tiltY: number;
   species: number;
   speciesIndex: number;
+  projectIndex: number;
   color: THREE.Color;
 }
 
@@ -76,6 +93,8 @@ interface GardenResources {
   materials: THREE.ShaderMaterial[];
   geometries: THREE.BufferGeometry[];
   fireflyMaterial: THREE.ShaderMaterial;
+  flyPositions: Float32Array;
+  flySeeds: Float32Array;
 }
 
 /** Thirty vertices: rounded outline and a real, subdivided cup, not a disk. */
@@ -109,13 +128,16 @@ function instanceGeometry(base: THREE.BufferGeometry, flowers: Flower[], repeats
   for (const name of Object.keys(base.attributes)) geometry.setAttribute(name, base.attributes[name]);
   const anchors = new Float32Array(flowers.length * 4);
   const heads = new Float32Array(flowers.length * 4);
+  const projects = new Float32Array(flowers.length);
   for (let i = 0; i < flowers.length; i++) {
     const f = flowers[i];
     anchors.set([f.x, f.ground, f.z, f.height], i * 4);
     heads.set([f.radius, f.phase, f.tiltX, f.tiltY], i * 4);
+    projects[i] = f.projectIndex;
   }
   geometry.setAttribute("aFlower", new THREE.InstancedBufferAttribute(anchors, 4, false, repeats));
   geometry.setAttribute("aHead", new THREE.InstancedBufferAttribute(heads, 4, false, repeats));
+  geometry.setAttribute("aProjectIndex", new THREE.InstancedBufferAttribute(projects, 1, false, repeats));
   const protection = new THREE.InstancedBufferAttribute(protections, 1, false, repeats);
   protection.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute("aProtection", protection);
@@ -129,7 +151,8 @@ function uploadProtections(attributes: THREE.InstancedBufferAttribute[]) {
 }
 
 /** All GPU resources are created anew in the effect, including Strict Mode remounts. */
-export function Garden({ count = 360 }: { count?: number }) {
+export function Garden({ count = 75 }: { count?: number }) {
+  const narrow = useThree((state) => state.size.width <= 768);
   const group = useRef<THREE.Group>(null);
   const resources = useRef<GardenResources | null>(null);
   const fade = useRef(0);
@@ -139,29 +162,44 @@ export function Garden({ count = 360 }: { count?: number }) {
   useEffect(() => {
     const container = group.current;
     if (!container) return;
-    const rand = mulberry32(hashString(`garden:curved:${count}`));
+    const flowerCount = Math.max(4, Math.round(count));
+    // Quality changes remove background plants without relocating the guides.
+    const rand = mulberry32(hashString(`garden:night:${narrow}`));
     const flowers: Flower[] = [];
     const bySpecies: Flower[][] = [[], [], []];
-    for (let i = 0; i < count; i++) {
-      const hero = i < Math.min(12, count);
+    for (let i = 0; i < flowerCount; i++) {
+      const featured = i < 4;
       const layer = rand();
-      const depth = hero ? 7.8 + rand() * 2.2
-        : layer < 0.35 ? 7.6 + rand() * 3.2 : layer < 0.8 ? 10.8 + rand() * 5.2 : 16 + rand() * 8;
+      const depth = featured ? 8.6 + i * 0.68
+        : layer < 0.24 ? 7.6 + rand() * 2.8 : layer < 0.74 ? 11.2 + rand() * 5.0 : 17.5 + rand() * 7.0;
+      const halfHeight = depth * HALF_FOV;
       const species = i % SPECIES.length;
       const spec = SPECIES[species];
-      const normalizedX = hero ? -0.94 + (i / Math.max(1, Math.min(12, count) - 1)) * 1.88 : (rand() - 0.5) * 2.08;
+      // Keep the four guides on the right; two low plants per five spread
+      // across the whole width, with stable positions at either quality level.
+      const rightField = featured || (!narrow && (i - 4) % 5 >= 2);
+      const normalizedX = featured ? (narrow ? MOBILE_FEATURED_X[i] : FEATURED_X[i])
+        : narrow ? (rand() - 0.5) * 2.02 : rightField ? 0.43 + rand() * 0.64
+          : -1.03 + ((Math.floor((i - 4) / 5) * 0.61803398875 + (i - 4) % 5 * 0.5 + rand() * 0.08) % 1) * 2.06;
+      const heightRatio = featured ? (narrow ? MOBILE_FEATURED_HEIGHT[i] : FEATURED_HEIGHT[i])
+        : narrow ? 0.14 + rand() * 0.22 : rightField ? 0.34 + Math.pow(rand(), 0.75) * 0.93 : 0.22 + rand() * 0.17;
       const flower: Flower = {
-        x: normalizedX * depth * HALF_FOV,
+        x: normalizedX * halfHeight,
         z: -depth,
-        ground: -Math.max(0, depth - 8) * 0.16 + Math.sin(normalizedX * 4.0) * 0.18,
-        height: hero ? 1.05 + (i % 4) * 0.82 + rand() * 0.25 : 0.95 + rand() * 3.0,
-        radius: hero ? 0.61 + rand() * 0.04 : depth < 11 ? 0.46 + rand() * 0.19 : 0.3 + rand() * 0.24,
+        // Projected ground is just below the viewport at EVERY depth, not a
+        // flat world-space plane that floats behind the far text rows.
+        ground: GARDEN_GROUND_OFFSET - halfHeight * (1.08 + rand() * 0.035),
+        height: heightRatio * halfHeight,
+        radius: narrow ? (featured ? 0.3 : 0.2) + rand() * 0.085
+          : featured ? 0.7 + rand() * 0.07 : !rightField ? 0.26 + rand() * 0.1
+            : depth < 11 ? 0.64 + rand() * 0.15 : depth < 17 ? 0.43 + rand() * 0.12 : 0.28 + rand() * 0.08,
         phase: rand() * Math.PI * 2,
         // XY-facing cups: no -PI/2 edge-on rotation.
         tiltX: 0.12 + rand() * 0.43,
         tiltY: (rand() - 0.5) * 0.65,
         species,
         speciesIndex: bySpecies[species].length,
+        projectIndex: featured ? i : -1,
         color: new THREE.Color(spec.colors[Math.floor(rand() * spec.colors.length)]),
       };
       flowers.push(flower);
@@ -179,11 +217,16 @@ export function Garden({ count = 360 }: { count?: number }) {
     const geometries: THREE.BufferGeometry[] = [];
     const materials: THREE.ShaderMaterial[] = [];
     const protectionAttributes: THREE.InstancedBufferAttribute[] = [];
-    const protections = new Float32Array(count);
+    const protections = new Float32Array(flowerCount);
     const speciesProtections = bySpecies.map((list) => new Float32Array(list.length));
     const common = {
       uTime: { value: 0 }, uGrowth: { value: 0 }, uFade: { value: 0 },
       uPointer: { value: 0 }, uAspect: { value: 1 },
+      uNarrow: { value: narrow ? 1 : 0 },
+      uHighlight: { value: new Float32Array(4) },
+      uLanding: { value: new Float32Array(4) },
+      uFireflyLights: { value: Array.from({ length: 6 }, () => new THREE.Vector3()) },
+      uFireflyGlow: { value: new Float32Array(6) },
     };
     const makeMaterial = (vertexShader: string, fragmentShader: string,
       extra: Record<string, THREE.IUniform> = {}) => {
@@ -201,15 +244,18 @@ export function Garden({ count = 360 }: { count?: number }) {
       mesh.frustumCulled = false;
       field.add(mesh);
       // Exact silhouette: same instancing, growth, wind and reading repulsion.
-      // Black cores write depth and remain holes in the white foliage mask.
+      // Red foliage / green clean cores / blue whole-flower landing coverage
+      // share geometry, uniforms and depth.
       const clean = material.fragmentShader === flowerCoreFragment;
       const maskMaterial = new THREE.ShaderMaterial({
         vertexShader: material.vertexShader,
-        fragmentShader: `uniform float uFade; void main() {
-          if (uFade < 0.004) discard;
-          gl_FragColor = vec4(${clean ? "0.0, 1.0, 0.0" : "1.0, 0.0, 0.0"}, 1.0);
+        fragmentShader: `${gardenVisibilityFragment} uniform float uFade; varying float vLanding; void main() {
+          float visibility = gardenVisibility();
+          if (uFade * visibility < 0.004) discard;
+          gl_FragColor = vec4(vec3(${clean ? "0.0, 1.0" : "1.0, 0.0"}, vLanding) * visibility, 1.0);
         }`,
         uniforms: material.uniforms, side: THREE.DoubleSide, toneMapped: false,
+        depthWrite: true, depthTest: true,
       });
       materials.push(maskMaterial);
       const maskMesh = new THREE.Mesh(geometry, maskMaterial);
@@ -223,22 +269,23 @@ export function Garden({ count = 360 }: { count?: number }) {
     const coreBase = new THREE.SphereGeometry(1, 8, 5);
     geometries.push(petalBase, stemBase, coreBase);
     const stems = instanceGeometry(stemBase, flowers, 1, protections, protectionAttributes);
-    stems.setAttribute("aPetal", new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4));
+    stems.setAttribute("aPetal", new THREE.InstancedBufferAttribute(new Float32Array(flowerCount * 4), 4));
     addMesh(stems, makeMaterial(foliageVertex, foliageFragment, {
-      uLeaves: { value: 0 }, uDark: { value: new THREE.Color("#234535") }, uLight: { value: new THREE.Color("#779568") },
+      uLeaves: { value: 0 }, uDark: { value: new THREE.Color("#18372d") }, uLight: { value: new THREE.Color("#648b79") },
     }));
 
     const leaves = instanceGeometry(petalBase, flowers, 2, protections, protectionAttributes);
-    const leafShapes = new Float32Array(count * 2 * 4);
-    for (let i = 0; i < count; i++) {
+    const leafShapes = new Float32Array(flowerCount * 2 * 4);
+    for (let i = 0; i < flowerCount; i++) {
       for (let leaf = 0; leaf < 2; leaf++) {
         leafShapes.set([(leaf ? -1 : 1) * (0.8 + rand() * 0.45),
-          0.45 + rand() * 0.35, 0.10 + rand() * 0.065, 0.28 + leaf * 0.28], (i * 2 + leaf) * 4);
+          (narrow ? 0.26 : 0.45) + rand() * (narrow ? 0.18 : 0.35),
+          (narrow ? 0.07 : 0.10) + rand() * 0.055, 0.28 + leaf * 0.28], (i * 2 + leaf) * 4);
       }
     }
     leaves.setAttribute("aPetal", new THREE.InstancedBufferAttribute(leafShapes, 4));
     addMesh(leaves, makeMaterial(foliageVertex, foliageFragment, {
-      uLeaves: { value: 1 }, uDark: { value: new THREE.Color("#244c3a") }, uLight: { value: new THREE.Color("#98b77c") },
+      uLeaves: { value: 1 }, uDark: { value: new THREE.Color("#19372e") }, uLight: { value: new THREE.Color("#729a88") },
     }));
 
     for (let species = 0; species < SPECIES.length; species++) {
@@ -270,11 +317,14 @@ export function Garden({ count = 360 }: { count?: number }) {
         uDark: { value: new THREE.Color("#855023") }, uLight: { value: new THREE.Color("#ffd16b") },
       }));
 
-    const fireflyCount = Math.min(180, Math.max(60, Math.round(count * 0.5)));
+    const fireflyCount = narrow ? 60 : 84;
     const flyPositions = new Float32Array(fireflyCount * 3);
     const flySeeds = new Float32Array(fireflyCount);
     for (let i = 0; i < fireflyCount; i++) {
-      flyPositions.set([(rand() - 0.5) * 17, 0.8 + rand() * 4.4, -7 - rand() * 12], i * 3);
+      const host = flowers[i % flowers.length];
+      flyPositions.set([host.x + (rand() - 0.5) * 0.75,
+        host.ground + host.height * (i < 6 ? 1 : 0.35 + rand() * 0.85) + (rand() - 0.5) * 0.4,
+        host.z + (rand() - 0.5) * 0.65], i * 3);
       flySeeds[i] = rand();
     }
     const flyGeometry = new THREE.BufferGeometry();
@@ -283,7 +333,8 @@ export function Garden({ count = 360 }: { count?: number }) {
     geometries.push(flyGeometry);
     const fireflyMaterial = new THREE.ShaderMaterial({
       vertexShader: fireflyVertex, fragmentShader: fireflyFragment,
-      uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uPixelRatio: { value: 1 }, uColor: { value: new THREE.Color("#ffcc80") } },
+      uniforms: { uTime: common.uTime, uFade: { value: 0 }, uAspect: common.uAspect,
+        uNarrow: common.uNarrow, uPixelRatio: { value: 1 }, uColor: { value: new THREE.Color("#ffb74f") } },
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
     });
     const flies = new THREE.Points(flyGeometry, fireflyMaterial);
@@ -291,17 +342,19 @@ export function Garden({ count = 360 }: { count?: number }) {
     root.add(flies);
     container.add(root);
     resources.current = { field, coverage, flies, flowers, protections, speciesProtections,
-      protectionAttributes, geometries, materials, fireflyMaterial };
+      protectionAttributes, geometries, materials, fireflyMaterial, flyPositions, flySeeds };
 
     return () => {
       resources.current = null;
       if (asciiSources.garden === coverageScene) asciiSources.garden = null;
+      gardenState.anchors.fill(0);
+      gardenState.screenAnchors.fill(-1);
       container.remove(root);
       for (const geometry of geometries) geometry.dispose();
       for (const material of materials) material.dispose();
       fireflyMaterial.dispose();
     };
-  }, [count]);
+  }, [count, narrow]);
 
   useFrame((state, delta) => {
     const r = resources.current;
@@ -314,46 +367,101 @@ export function Garden({ count = 360 }: { count?: number }) {
     r.coverage.visible = r.field.visible;
     r.flies.visible = flyFade.current > 0.004;
     container.visible = r.field.visible || r.flies.visible;
-    // Camera already has inertia. A second damping here makes the whole field
-    // float upward across headings for seconds after a scroll jump.
-    container.position.y = state.camera.position.y - GROUND_OFFSET;
+    // Bounded narrative travel, not a screen pin or a second inertia loop.
+    // Perspective makes nearer flowers drift more than distant ones; the
+    // continuous offset remains inside the protected low strip on the left.
+    const travel = (narrow ? 0.28 : 0.72) * Math.tanh((-worldState.cameraY - 50) * 0.18);
+    container.position.y = state.camera.position.y - GARDEN_GROUND_OFFSET + travel;
     container.position.z = state.camera.position.z;
-    container.rotation.y = pointerState.nx * 0.025;
-    if (!container.visible) return;
+    container.rotation.y = pointerState.nx * 0.012;
     container.updateMatrixWorld();
     r.coverage.matrix.copy(container.matrixWorld);
+    r.coverage.matrixWorldNeedsUpdate = true;
 
     const time = state.clock.elapsedTime;
-    if (r.flies.visible) {
-      r.fireflyMaterial.uniforms.uTime.value = time;
-      r.fireflyMaterial.uniforms.uFade.value = flyFade.current;
-      r.fireflyMaterial.uniforms.uPixelRatio.value = Math.min(2, state.viewport.dpr);
-    }
-    if (!r.field.visible) return;
     const aspect = state.size.width / Math.max(1, state.size.height);
-    // Shared uniform objects: update once, not per petal/material.
+    // Mask materials retain the SAME uniform objects as their visible meshes.
     const uniforms = r.materials[0].uniforms;
     uniforms.uTime.value = time;
     uniforms.uGrowth.value = worldState.growth;
     uniforms.uFade.value = fade.current;
     uniforms.uPointer.value = pointerState.nx;
     uniforms.uAspect.value = aspect;
+    const highlight = uniforms.uHighlight.value as Float32Array;
+    const landing = uniforms.uLanding.value as Float32Array;
+    const now = performance.now() * 0.001;
+    const highlightDamping = 1 - Math.exp(-delta * 8);
+    for (let i = 0; i < 4; i++) {
+      highlight[i] += ((gardenState.active === i ? 1 : 0) - highlight[i]) * highlightDamping;
+      const age = now - asciiEvents.flowerBorn[i];
+      landing[i] = age >= 0 ? 1 - smoothstep(2, 2.8, age) : 0;
+    }
+    if (r.flies.visible) {
+      r.fireflyMaterial.uniforms.uFade.value = flyFade.current;
+      r.fireflyMaterial.uniforms.uPixelRatio.value = Math.min(2, state.viewport.dpr);
+    }
+
+    // Six actual fireflies light the petals. Motion and intensity match the
+    // point vertex shader exactly; vectors/typed arrays are allocated once.
+    const lights = uniforms.uFireflyLights.value as THREE.Vector3[];
+    const glow = uniforms.uFireflyGlow.value as Float32Array;
+    for (let i = 0; i < lights.length; i++) {
+      const seed = r.flySeeds[i];
+      const s = seed * 6.2831853;
+      const t = time * (0.22 + 0.09 * seed);
+      const offset = i * 3;
+      lights[i].set(
+        r.flyPositions[offset] * aspect + Math.sin(t + s) * (0.28 + 0.34 * seed) + Math.sin(t * 1.73 + s * 2.1) * 0.17,
+        r.flyPositions[offset + 1] + Math.sin(t * 0.79 + s * 1.7) * 0.26 + Math.cos(t * 1.37 + s * 2.3) * 0.1,
+        r.flyPositions[offset + 2] + Math.cos(t * 0.87 + s * 1.3) * 0.42 + Math.sin(t * 1.51 + s) * 0.12,
+      ).applyMatrix4(container.matrixWorld).applyMatrix4(state.camera.matrixWorldInverse);
+      glow[i] = Math.max(0.16, Math.min(1,
+        0.62 + 0.25 * Math.sin(t * 2.27 + s * 5) + 0.18 * Math.sin(t * 3.91 + s * 1.3))) * flyFade.current;
+    }
 
     // One projection and two scalar writes per flower, never per-petal matrices.
-    for (let i = 0; i < r.flowers.length; i++) {
+    // Even dormant worlds publish the four anchors after camera transforms;
+    // butterflies run at priority 0 and never read a stale previous frame.
+    const visibleCount = r.field.visible ? r.flowers.length : Math.min(4, r.flowers.length);
+    for (let i = 0; i < visibleCount; i++) {
       const flower = r.flowers[i];
-      const h = flower.height * worldState.growth;
-      const wind = Math.sin(time * 0.72 + flower.phase) * 0.12
-        + Math.sin(time * 0.27 + flower.phase * 1.7) * 0.065 + pointerState.nx * 0.045;
+      // Match plantGrowth(): background flowers unfurl with a small stagger;
+      // featured cores retain their original growth/guide timing.
+      const growth = flower.projectIndex >= 0 ? worldState.growth
+        : smoothstep(0.04 + 0.14 * (0.5 + 0.5 * Math.sin(flower.phase)), 1, worldState.growth);
+      const h = flower.height * growth;
+      const wind = Math.sin(time * 0.72 + flower.phase) * 0.06
+        + Math.sin(time * 0.27 + flower.phase * 1.7) * 0.03 + pointerState.nx * 0.02;
       projected.current.set(flower.x * aspect + wind * h, flower.ground + h,
         flower.z + Math.sin(time * 0.43 + flower.phase) * h * 0.035);
       projected.current.applyMatrix4(container.matrixWorld).project(state.camera);
-      const protection = readingInfluence(projected.current.x * 0.5 + 0.5, projected.current.y * 0.5 + 0.5);
+      const protection = r.field.visible
+        ? readingInfluence(projected.current.x * 0.5 + 0.5, projected.current.y * 0.5 + 0.5) : 0;
       r.protections[i] = protection;
       r.speciesProtections[flower.species][flower.speciesIndex] = protection;
+      if (i < 4) {
+        // turnHead(vec3(0, 0, .085)) is the core's real exposed center, not
+        // a guessed point on the stalk. Include growth, tilt and repulsion.
+        const tilt = flower.tiltX + wind * 0.45;
+        const coreZ = 0.085 * flower.radius * growth * (1 - protection * 0.22);
+        const tiltedZ = Math.cos(tilt) * coreZ;
+        projected.current.set(
+          flower.x * aspect + wind * h - Math.sin(flower.tiltY) * tiltedZ,
+          flower.ground + h - Math.sin(tilt) * coreZ,
+          flower.z + Math.sin(time * 0.43 + flower.phase) * h * 0.035 + Math.cos(flower.tiltY) * tiltedZ,
+        ).applyMatrix4(container.matrixWorld);
+        const worldOffset = i * 3;
+        gardenState.anchors[worldOffset] = projected.current.x;
+        gardenState.anchors[worldOffset + 1] = projected.current.y;
+        gardenState.anchors[worldOffset + 2] = projected.current.z;
+        projected.current.project(state.camera);
+        const screenOffset = i * 2;
+        gardenState.screenAnchors[screenOffset] = (projected.current.x * 0.5 + 0.5) * state.size.width;
+        gardenState.screenAnchors[screenOffset + 1] = (0.5 - projected.current.y * 0.5) * state.size.height;
+      }
     }
-    uploadProtections(r.protectionAttributes);
-  });
+    if (r.field.visible) uploadProtections(r.protectionAttributes);
+  }, -1);
 
   return <group ref={group} position={[0, -58, 0]} dispose={null} />;
 }

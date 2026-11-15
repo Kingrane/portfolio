@@ -21,7 +21,7 @@ function expose(canvas: HTMLCanvasElement, previous: Float64Array, index: number
 }
 
 /** Linear HalfFloat → ASCII → ACES → text luminance cap → Bayer/IGN → sRGB. */
-export function WorldPost({ cell }: { cell: number }) {
+export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: number }) {
   const { gl, scene, camera } = useThree();
   const pipeline = useRef<{
     composer: EffectComposer;
@@ -41,6 +41,10 @@ export function WorldPost({ cell }: { cell: number }) {
     empty: DataTexture;
     clearColor: Color;
     stars: WebGLRenderTarget;
+    aura: CanvasTexture;
+    auraPaint: CanvasRenderingContext2D;
+    lastAura: number;
+    auraActive: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -74,6 +78,13 @@ export function WorldPost({ cell }: { cell: number }) {
       depthBuffer: false, stencilBuffer: false, generateMipmaps: false,
     });
     ascii.uniforms.get("uFieldStars")!.value = stars.texture;
+    const auraCanvas = document.createElement("canvas");
+    auraCanvas.width = auraCanvas.height = 1;
+    const auraPaint = auraCanvas.getContext("2d", { alpha: false })!;
+    const aura = new CanvasTexture(auraCanvas);
+    aura.minFilter = aura.magFilter = LinearFilter;
+    aura.generateMipmaps = false;
+    ascii.uniforms.get("uAuraMask")!.value = aura;
     // One reusable radial stamp; no gradient/canvas allocation in the frame.
     const stamp = document.createElement("canvas");
     stamp.width = stamp.height = 64;
@@ -115,6 +126,7 @@ export function WorldPost({ cell }: { cell: number }) {
       composer, ascii, reading, width: 0, height: 0, dpr: 0, dither, nodes,
       paint, stamp, lastNodes: -1, nodeCount: 0, exposed: new Float64Array(5).fill(NaN),
       garden, empty, clearColor: new Color(), stars,
+      aura, auraPaint, lastAura: -1, auraActive: false,
     };
     return () => {
       pipeline.current = null;
@@ -125,6 +137,7 @@ export function WorldPost({ cell }: { cell: number }) {
       garden.dispose();
       empty.dispose();
       stars.dispose();
+      aura.dispose();
     };
   }, [gl, scene, camera, cell]);
 
@@ -144,6 +157,9 @@ export function WorldPost({ cell }: { cell: number }) {
       current.paint.canvas.width = Math.round(size.width * scale);
       current.paint.canvas.height = Math.round(size.height * scale);
       current.lastNodes = -1;
+      current.auraPaint.canvas.width = current.paint.canvas.width;
+      current.auraPaint.canvas.height = current.paint.canvas.height;
+      current.lastAura = -1;
       current.garden.setSize(Math.max(1, Math.round(size.width * 0.5)), Math.max(1, Math.round(size.height * 0.5)));
       current.ascii.uniforms.get("uGardenTexel")!.value.set(1 / current.garden.width, 1 / current.garden.height);
       current.stars.setSize(Math.max(1, Math.round(size.width * dpr)), Math.max(1, Math.round(size.height * dpr)));
@@ -152,20 +168,39 @@ export function WorldPost({ cell }: { cell: number }) {
     current.ascii.setInteractions(interactionState, now);
     current.ascii.setTuning(narrow);
     const dive = worldState.dive;
-    const approach = Math.min(1, Math.max(0, dive / 0.8));
-    const centered = 1 - approach * approach * (3 - 2 * approach);
-    const zoom = narrow ? 2.1 : 1.74 * size.height / size.width;
-    const shadow = size.height * 0.244 / zoom;
-    current.ascii.uniforms.get("uHole")!.value.set(
-      size.width * 0.5 + (narrow ? 0 : size.width * 0.19) * centered,
-      size.height * 0.5 - (narrow ? size.height * 0.28 : size.height * 0.04) * centered,
-      shadow, shadow * 3.7,
-    );
+    current.ascii.uniforms.get("uHole")!.value.fromArray(asciiSources.holeBounds);
+    current.ascii.uniforms.get("uQuality")!.value = quality;
     current.ascii.uniforms.get("uWorld")!.value.set(
       worldState.hole, worldState.stars * (1 - worldState.hole) * (1 - worldState.rain),
       worldState.flowers, Math.sin(Math.PI * dive) * worldState.hole,
     );
     current.dither.value = sceneTuning.dither;
+    // User requested a continuous rain backdrop from the end of the dive
+    // through stack AND projects, not only in their inter-section gap.
+    const rain = worldState.rain;
+    current.ascii.uniforms.get("uRain")!.value = (1 - worldState.hole)
+      * (0.35 + 0.2 * rain) * (1 - worldState.flowers) * (1 - worldState.fireflies);
+    const auraActive = worldState.flowers > 0.02 && worldState.growth > 0.1;
+    if (now - current.lastAura > 0.05 && (auraActive || current.auraActive || current.lastAura < 0)) {
+      const paint = current.auraPaint;
+      const scale = paint.canvas.width / size.width;
+      paint.setTransform(scale, 0, 0, scale, 0, 0);
+      paint.globalAlpha = 1;
+      paint.fillStyle = "black";
+      paint.fillRect(0, 0, size.width, size.height);
+      const trail = asciiSources.butterflyTrail;
+      for (let n = 0; auraActive && n < trail.length; n += 4) {
+        const age = now - trail[n + 2];
+        if (age < 0 || age > 1.5 || trail[n + 3] <= 0) continue;
+        const radius = trail[n + 3];
+        paint.globalAlpha = (1 - age / 1.5) * worldState.flowers;
+        paint.drawImage(current.stamp, trail[n] - radius, trail[n + 1] - radius, radius * 2, radius * 2);
+      }
+      paint.globalAlpha = 1;
+      current.aura.needsUpdate = true;
+      current.lastAura = now;
+      current.auraActive = auraActive;
+    }
     // The node mask follows projected geometry at 20 Hz. Dormant worlds neither
     // paint nor upload a texture; interpolation is provided by soft stamp edges.
     const count = asciiSources.nodeCount;
@@ -206,7 +241,7 @@ export function WorldPost({ cell }: { cell: number }) {
       gl.setRenderTarget(current.stars);
       gl.setClearColor(0, 0);
       gl.clear(true, false, false);
-      if (worldState.stars > 0.001) gl.render(scene, camera);
+      if (worldState.stars > 0.001 && worldState.hole < 0.999) gl.render(scene, camera);
     } finally {
       camera.layers.mask = layers;
       gl.setRenderTarget(previous);

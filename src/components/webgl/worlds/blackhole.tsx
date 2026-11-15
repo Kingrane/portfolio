@@ -11,7 +11,7 @@ import { asciiSources } from "@/scene/ascii-sources";
 /**
  * Мир 1: чёрная дыра.
  * Ray integration runs at its own lower resolution, not at the canvas DPR.
- * One linear HDR texture is composited into the shared scene before WorldPost.
+ * MRT keeps linear HDR disk/coverage separate from the clean lensed stars.
  */
 export function Blackhole({ quality, narrow = false }: { quality: number; narrow?: boolean }) {
   const display = useRef<THREE.ShaderMaterial>(null);
@@ -36,7 +36,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
       generateMipmaps: false,
       count: 2,
     });
-    target.texture.colorSpace = THREE.NoColorSpace;
+    target.textures[0].colorSpace = target.textures[1].colorSpace = THREE.NoColorSpace;
     const material = new THREE.ShaderMaterial({
       vertexShader: blackholeVertex,
       fragmentShader: `layout(location = 0) out highp vec4 holeColor;
@@ -71,7 +71,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
       pipeline.current = null;
       if (asciiSources.hole === target.texture) asciiSources.hole = null;
       if (asciiSources.cleanStars === target.textures[1]) asciiSources.cleanStars = null;
-    if (screen) screen.uniforms.uTexture.value = null;
+      if (screen) screen.uniforms.uTexture.value = null;
       if (screen) screen.uniforms.uStars.value = null;
       geometry.dispose();
       material.dispose();
@@ -108,7 +108,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
 
     // Degrade the hole's resolution first; preserve geometry/lighting and the
     // HTML. Only lower quality levels shorten ray paths and simplify the scene.
-    const scale = (narrow ? 0.75 : 0.65) * (quality >= 0.75 ? quality : 0.65);
+    const scale = 0.75 * Math.max(0.45, Math.min(1, quality));
     const width = Math.max(1, Math.round(state.size.width * scale));
     const height = Math.max(1, Math.round(state.size.height * scale));
     if (current.target.width !== width || current.target.height !== height) current.target.setSize(width, height);
@@ -117,13 +117,32 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     m.uniforms.uPointer.value.copy(smoothPointer.current);
     m.uniforms.uAspect.value = state.size.width / Math.max(1, state.size.height);
     m.uniforms.uQuality.value = quality;
-    m.uniforms.uSteps.value = narrow ? (quality >= 0.75 ? 40 : 32) : (quality >= 0.75 ? 96 : quality >= 0.5 ? 80 : 64);
+    m.uniforms.uSteps.value = narrow ? (quality >= 0.5 ? 40 : 32) : (quality >= 0.5 ? 96 : quality >= 0.35 ? 80 : 64);
     m.uniforms.uResolution.value.set(width, height);
     m.uniforms.uIntro.value = Math.min(1, m.uniforms.uIntro.value + dt * 2);
     m.uniforms.uOpacity.value = worldState.hole;
     m.uniforms.uDive.value = worldState.dive;
-    m.uniforms.uZoom.value = narrow ? 2.1 : 1.74 / m.uniforms.uAspect.value;
-    m.uniforms.uCenter.value.set(narrow ? 0 : (state.size.width / state.size.height) * 0.19, narrow ? 0.28 : 0.04);
+    // The integrated critical impact parameter projects to ~0.244 image units.
+    // r_screen / width = 0.244 / (zoom * aspect): desktop shadow is 12vw.
+    // WorldPost's mask must use the same zoom, center and eased dive centering.
+    m.uniforms.uZoom.value = narrow ? 2.1 : (0.244 / 0.12) / m.uniforms.uAspect.value;
+    m.uniforms.uCenter.value.set(narrow ? 0 : m.uniforms.uAspect.value * 0.18, narrow ? 0.28 : 0.04);
+    // Publish the SAME image-plane transform to the ASCII/output masks. The
+    // critical impact parameter expands continuously while the camera dives.
+    const dive = worldState.dive;
+    const approach = Math.min(1, Math.max(0, dive / 0.8));
+    const centered = 1 - approach * approach * (3 - 2 * approach);
+    const radius = 18 - 16.96 * dive * dive;
+    const criticalImpact2 = 6.75 / (1 + 6.75 / (radius * radius * radius));
+    const screenLimit = Math.hypot(state.size.width, state.size.height) * 2;
+    const shadow = radius > 1.5 ? Math.min(screenLimit,
+      state.size.height / Math.max(0.15, m.uniforms.uZoom.value) / 0.6
+        * Math.sqrt(criticalImpact2 / Math.max(0.000001, radius * radius - criticalImpact2))) : screenLimit;
+    const bounds = asciiSources.holeBounds;
+    bounds[0] = state.size.width * 0.5 + state.size.height * (m.uniforms.uCenter.value.x * centered + smoothPointer.current.x * 0.007);
+    bounds[1] = state.size.height * (0.5 - m.uniforms.uCenter.value.y * centered - smoothPointer.current.y * 0.007);
+    bounds[2] = shadow;
+    bounds[3] = shadow * 3.7;
 
     if (pulse.current > 0) {
       pulse.current += dt * 0.7;

@@ -20,7 +20,8 @@ type Support = "unknown" | "yes" | "no";
 function detectWebGL(): boolean {
   try {
     const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+    // The physical hole uses MRT/GLSL3; WebGL1 uses the static fallback.
+    const gl = canvas.getContext("webgl2");
     if (!gl) return false;
     // Освобождаем контекст, он нам нужен только для проверки
     const lose = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context");

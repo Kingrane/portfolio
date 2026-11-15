@@ -111,6 +111,16 @@ function measureSources(protectText: (element: HTMLElement) => void): ReadingSou
 /** At most eight tight capsules. Never merge distant text into a black sheet. */
 export function installReadingZones(): () => void {
   const mask = document.createElement("canvas");
+  const soft = document.createElement("canvas");
+  soft.width = soft.height = 128;
+  const brush = soft.getContext("2d")!;
+  const gradient = brush.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gradient.addColorStop(0, "white");
+  gradient.addColorStop(0.52, "white");
+  gradient.addColorStop(0.76, "rgba(255,255,255,0.4)");
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  brush.fillStyle = gradient;
+  brush.fillRect(0, 0, 128, 128);
   const paint = mask.getContext("2d", { alpha: false })!;
   readingState.mask = mask;
   let sources: ReadingSource[] = [];
@@ -146,9 +156,6 @@ export function installReadingZones(): () => void {
     paint.shadowBlur = 0;
     paint.fillStyle = "#000";
     paint.fillRect(0, 0, width, height);
-    paint.fillStyle = "#fff";
-    paint.shadowColor = "#fff";
-    paint.shadowBlur = 18 * scale;
     if (layoutDirty) {
       for (const element of protectedElements) {
         if (!element.isConnected) { element.classList.remove(styles.reading); protectedElements.delete(element); }
@@ -177,12 +184,16 @@ export function installReadingZones(): () => void {
         const right = Math.min(width + 32, rect.left + lines[line + 2] + 8);
         const bottom = rect.top + lines[line + 3] + 8;
         if (right <= 0 || left >= width || right <= left || bottom <= 0 || top >= height) continue;
-        // Every line is protected, even when the eight repulsion capsules are
-        // full. Extra horizontal padding covers the capsule's rounded ends.
-        const radius = (bottom - top) * 0.5;
-        paint.beginPath();
-        paint.roundRect(left - radius, top, right - left + radius * 2, bottom - top, radius);
-        paint.fill();
+        // Overlap cached radial stamps along the line. A single stretched oval
+        // leaves the first/last letters outside its protected center. These
+        // cores cover every glyph while the outside falls off gradually.
+        const rx = width < 768 ? 80 : 100;
+        const ry = Math.max(64, bottom - top + 32);
+        const steps = Math.max(1, Math.ceil((right - left) / (rx * 0.65)));
+        for (let stamp = 0; stamp <= steps; stamp++) {
+          const x = left + (right - left) * stamp / steps;
+          paint.drawImage(soft, x - rx, (top + bottom) * 0.5 - ry, rx * 2, ry * 2);
+        }
         const priority = item.strength * (1 - Math.min(0.7, Math.abs((top + bottom) * 0.5 / height - 0.45)));
         let slot = count;
         if (count === MAX_READING_ZONES) {

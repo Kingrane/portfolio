@@ -1,0 +1,74 @@
+.section {
+  isolation: isolate;
+}
+
+.copy {
+  position: relative;
+  isolation: isolate;
+  width: 52%;
+  padding-block: 7rem;
+}
+
+/* A continuous left reading field, not a separate plate for each project. */
+.copy::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 -6rem 0 calc(-1 * var(--gutter));
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(90deg, rgb(5 5 7 / 96%) 0%, rgb(5 5 7 / 88%) 68%, transparent 100%);
+  mask-image: linear-gradient(transparent, #000 4rem, #000 calc(100% - 7rem), transparent);
+}
+
+.link {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  padding: 1.5rem 0.75rem;
+  min-height: 44px;
+  transition: background-color 220ms ease, transform 220ms ease;
+}
+
+.row:hover .link,
+.row:focus-within .link {
+  background-color: rgb(255 179 71 / 4%);
+}
+
+.link:focus-visible {
+  outline: 1px solid var(--color-amber, #ffb347);
+  outline-offset: -1px;
+}
+
+.link:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 768px) {
+  .copy {
+    width: 100%;
+    padding-top: 5rem;
+    padding-bottom: calc(28svh + 3rem);
+  }
+
+  /* Every description and tag remains on solid night, including the last row.
+     Only the reserved 28svh after the copy reveals the flower strip. */
+  .copy::before {
+    inset: 0 calc(-1 * var(--gutter)) 28svh;
+    background: #050507;
+    mask-image: linear-gradient(transparent, #000 3rem, #000 calc(100% - 2rem), transparent);
+  }
+
+  .link {
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    gap: 0.5rem 0.75rem;
+    padding-inline: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+}

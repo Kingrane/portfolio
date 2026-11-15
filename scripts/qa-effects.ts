@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import sharp from "sharp";
 
 const url = process.env.QA_URL ?? "http://127.0.0.1:4173/portfolio/";
-const out = process.env.QA_OUT ?? "C:\\Users\\REDMI\\AppData\\Local\\Temp\\opencode\\portfolio-qa-phase-b";
+// Prepared for v3; do not run without permission against a freshly served export.
+const out = process.env.QA_OUT ?? "C:\\Users\\REDMI\\AppData\\Local\\Temp\\opencode\\portfolio-qa-v3-effects";
 const canvasOnly = "body * { visibility: hidden !important; } canvas[data-qa-webgl] { visibility: visible !important; }";
 const results: unknown[] = [];
 const browser = await chromium.launch({ executablePath: process.env.QA_CHROME ?? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", headless: true });
@@ -93,9 +95,63 @@ try {
       assert.equal(await card.evaluate((element) => (element as HTMLElement).style.getPropertyValue("--card-ry")), "0deg");
     }
     await page.screenshot({ path: join(out, "effects", `${name}-projects.png`), scale: "css" });
+    const projects = page.locator("#projects");
+    const all = projects.getByRole("button", { name: /^ALL\b/ });
+    await all.click();
+    await page.waitForTimeout(750);
+    const entries = await projects.locator("article").evaluateAll((cards) => cards.map((card) => ({
+      title: card.querySelector("h3")?.textContent?.trim() ?? "",
+      description: card.querySelector("p")?.textContent?.trim() ?? "",
+      tags: [...card.querySelectorAll("ul li")].map((tag) => tag.textContent?.trim() ?? ""),
+    })));
+    assert.equal(entries.length, 13, "all actual vibe projects are present");
+    for (const title of ["holoterm", "Bobik-2B"]) {
+      assert.ok(entries.find((entry) => entry.title === title)?.description, `${title}: approved short description`);
+    }
+    const covers: unknown[] = [];
+    for (let i = 0; i < entries.length; i++) {
+      const card = projects.locator("article").nth(i);
+      await card.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(750);
+      const cover = card.locator("canvas");
+      const path = join(out, "effects", `${name}-cover-${String(i + 1).padStart(2, "0")}.png`);
+      const image = await cover.screenshot({ path, scale: "css" });
+      const bounds = (await cover.boundingBox())!;
+      assert.ok(Math.abs(bounds.width / bounds.height - 1.6) < 0.02, "16:10 cover");
+      covers.push({ ...entries[i], path, sha256: createHash("sha256").update(image).digest("hex") });
+    }
+    const chips = projects.getByRole("button");
+    assert.ok(await chips.count() <= 7, "six facets plus ALL at most");
+    for (let i = 1; i < await chips.count(); i++) {
+      const chip = chips.nth(i);
+      const label = (await chip.locator("span").first().textContent())!.trim();
+      const expected = entries.filter((entry) => entry.tags.includes(label));
+      await chip.click();
+      await page.waitForTimeout(750);
+      assert.equal(await projects.locator("article").count(), expected.length, `${label}: filter count matches data`);
+      await page.screenshot({ path: join(out, "effects", `${name}-filter-${i}.png`), scale: "css" });
+      await all.click();
+      await page.waitForTimeout(750);
+    }
     await page.locator("#garden").scrollIntoViewIfNeeded();
     await page.waitForTimeout(700);
     await page.screenshot({ path: join(out, "effects", `${name}-garden.png`), scale: "css" });
+    const gardenRows = page.locator("#garden li.group");
+    assert.equal(await gardenRows.count(), 4, "four handmade flowers/projects");
+    for (let i = 0; i < 4; i++) {
+      const row = gardenRows.nth(i);
+      await row.scrollIntoViewIfNeeded();
+      if (mobile) await row.locator("a").focus();
+      else await row.hover();
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: join(out, "effects", `${name}-garden-project-${i + 1}.png`), scale: "css" });
+    }
+    // Evidence only: manually inspect butterflies, landings and the evolving
+    // ASCII trail. DOM assertions cannot certify a shader's visual appearance.
+    for (let i = 0; i < 18; i++) {
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: join(out, "effects", `${name}-garden-event-${String(i).padStart(2, "0")}.png`), scale: "css" });
+    }
     // Synthetic visibility event exercises the application's pause path, not
     // Chrome's separate background-tab throttling. Count actual WebGL draws.
     await page.evaluate(() => {
@@ -133,7 +189,7 @@ try {
     assert.equal(await canvas.evaluate((element: HTMLCanvasElement) => element.getContext("webgl2")?.isContextLost()), false);
     await page.screenshot({ path: join(out, "effects", `${name}-restored.png`), scale: "css" });
     assert.deepEqual(errors, [], `${name}: shader/runtime errors`);
-    results.push({ viewport, canvasCount: 1, heading: "Стэк", warmTrailPixels: { before, during, after }, contextRestore: true, syntheticVisibilityPause: "draw calls stop and resume", cardTilt: mobile ? "disabled on touch" : "left/right/reset passed", errors });
+    results.push({ viewport, canvasCount: 1, heading: "Стэк", covers, visualReviewRequired: "hole/rain/unique scenes/landings/trails/garden row contrast", warmTrailPixels: { before, during, after }, contextRestore: true, syntheticVisibilityPause: "draw calls stop and resume", cardTilt: mobile ? "disabled on touch" : "left/right/reset passed", errors });
     await context.close();
   }
 } finally {

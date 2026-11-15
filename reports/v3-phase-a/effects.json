@@ -1,0 +1,36 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "canvasCount": 1,
+    "heading": "Стэк",
+    "warmTrailPixels": {
+      "before": 0,
+      "during": 1037,
+      "after": 0
+    },
+    "contextRestore": true,
+    "syntheticVisibilityPause": "draw calls stop and resume",
+    "cardTilt": "left/right/reset passed",
+    "errors": []
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "canvasCount": 1,
+    "heading": "Стэк",
+    "warmTrailPixels": {
+      "before": 16,
+      "during": 1119,
+      "after": 0
+    },
+    "contextRestore": true,
+    "syntheticVisibilityPause": "draw calls stop and resume",
+    "cardTilt": "disabled on touch",
+    "errors": []
+  }
+]

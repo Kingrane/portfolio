@@ -17,6 +17,9 @@ export const asciiFragment = /* glsl */ `
   uniform sampler2D uHoleMask;
   uniform sampler2D uCleanStars;
   uniform sampler2D uFieldStars;
+  uniform sampler2D uAuraMask;
+  uniform float uRain;
+  uniform float uQuality;
   uniform vec4 uEmitters[8]; // CSS x/y, radius, strength; slot 0 = pointer
   uniform int uEmitterCount;
   uniform float uTime; // performance.now seconds, same epoch as event histories
@@ -33,7 +36,7 @@ export const asciiFragment = /* glsl */ `
     // layer from shining through opaque petals or the clean amber cores.
     float occlusion = clamp(max(garden.r, garden.g), 0.0, 1.0);
     return texture2D(uCleanStars, uv).rgb * uWorld.x
-      + texture2D(uFieldStars, uv).rgb * (1.0 - occlusion);
+      + texture2D(uFieldStars, uv).rgb * (1.0 - uWorld.x) * (1.0 - occlusion);
   }
   vec3 sourceColor(vec2 uv, float preserveStars) {
     vec3 color = texture2D(inputBuffer, uv).rgb;
@@ -59,18 +62,22 @@ export const asciiFragment = /* glsl */ `
       if (i >= uEmitterCount) break;
       vec4 source = uEmitters[i];
       float radius = max(1.0, source.z);
-      emitter = max(emitter, (1.0 - smoothstep(radius * 0.55, radius,
-        length(screenCell - source.xy))) * source.w);
+      float distanceToSource = i == 7 ? abs(screenCell.y - source.y) : length(screenCell - source.xy);
+      emitter = max(emitter, (1.0 - smoothstep(radius * 0.55, radius, distanceToSource)) * source.w);
     }
+    emitter = max(emitter, texture2D(uAuraMask, uv).r);
     float preserveStars = (1.0 - max(emitter, uDebugFull)) * (1.0 - uWorld.w);
     vec3 stars = starColor(uv);
     // Four samples stabilize small moving highlights. Dark cells stay empty.
-    vec3 cell = (
-      sourceColor(center + offset, preserveStars) +
-      sourceColor(center - offset, preserveStars) +
-      sourceColor(center + offset * vec2(1.0, -1.0), preserveStars) +
-      sourceColor(center + offset * vec2(-1.0, 1.0), preserveStars)
-    ) * 0.25;
+    vec3 cell;
+    if (uQuality >= 0.35) {
+      cell = (sourceColor(center + offset, preserveStars) +
+        sourceColor(center - offset, preserveStars) +
+        sourceColor(center + offset * vec2(1.0, -1.0), preserveStars) +
+        sourceColor(center + offset * vec2(-1.0, 1.0), preserveStars)) * 0.25;
+    } else {
+      cell = sourceColor(center, preserveStars);
+    }
     float light = luma(cell);
     // The old HDR curve sent low-lit petals to a space/dot almost everywhere.
     // A perceptual curve uses the whole ramp without raising the scene's light.
@@ -78,10 +85,13 @@ export const asciiFragment = /* glsl */ `
     float glyphIndex = floor(clamp(density * 11.0 + bayer8(index) - 0.5, 0.0, 10.0));
     float glyph = atlasGlyph(glyphIndex, local);
     vec2 glowStep = vec2(0.85 / uCell);
-    float halo = (atlasGlyph(glyphIndex, local + vec2(glowStep.x, 0.0))
-      + atlasGlyph(glyphIndex, local - vec2(glowStep.x, 0.0))
-      + atlasGlyph(glyphIndex, local + vec2(0.0, glowStep.y))
-      + atlasGlyph(glyphIndex, local - vec2(0.0, glowStep.y))) * 0.25;
+    float halo = glyph;
+    if (uQuality >= 0.35) {
+      halo = (atlasGlyph(glyphIndex, local + vec2(glowStep.x, 0.0))
+        + atlasGlyph(glyphIndex, local - vec2(glowStep.x, 0.0))
+        + atlasGlyph(glyphIndex, local + vec2(0.0, glowStep.y))
+        + atlasGlyph(glyphIndex, local - vec2(0.0, glowStep.y))) * 0.25;
+    }
     float litOnly = smoothstep(0.003, 0.028, light);
     float distanceToHole = length(screenCell - uHole.xy);
     float diskEdge = smoothstep(uHole.z * 1.18, uHole.z * 1.65, distanceToHole)
@@ -95,7 +105,10 @@ export const asciiFragment = /* glsl */ `
     float ambient = max(max(heroMask, nodesMask * 0.6), gardenMask);
     ambient = max(ambient, uWorld.w * litOnly * 0.85);
     float protection = readingMask(uv);
-    float mask = max(clamp(ambient * uStrength, 0.0, 1.0), emitter) * (1.0 - protection);
+    // Blue coverage follows each landed flower's actual geometry, including
+    // its normally clean core. It remains subordinate to HTML reading zones.
+    float landing = texture2D(uGardenMask, uv).b;
+    float mask = max(max(clamp(ambient * uStrength, 0.0, 1.0), emitter), landing) * (1.0 - protection);
     // Full mode is a diagnostic, not a public render-mode switch.
     mask = mix(mask, 1.0, uDebugFull);
     float ink = glyph + max(0.0, halo - glyph) * uGlow;
@@ -124,6 +137,16 @@ export const asciiFragment = /* glsl */ `
       vec3 ink = mix(vec3(1.0, 0.34, 0.045), vec3(0.28, 0.15, 1.0), step(0.94, seed));
       float lattice = mix(0.65, 1.0, step(0.35, seed));
       color += ink * spark * energy * lattice * 1.8;
+    }
+    // The falling layer accompanies both stack and projects, starting directly
+    // after the dive. Its glyphs never touch protected HTML text.
+    if (uRain > 0.001) {
+      float seed = cellHash(vec2(index.x, 17.0));
+      float stream = fract((index.y + uTime * (3.0 + seed * 5.0)) / (18.0 + seed * 22.0));
+      float tail = pow(stream, 9.0) * step(0.68, seed);
+      float drop = atlasGlyph(2.0 + floor(cellHash(index + floor(uTime * 4.0)) * 9.0), local);
+      color += mix(vec3(0.12, 0.055, 0.42), vec3(0.6, 0.36, 1.0), stream)
+        * drop * tail * uRain * (1.0 - protection) * 0.8;
     }
     outputColor = vec4(color, inputColor.a);
   }

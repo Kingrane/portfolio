@@ -1,5 +1,5 @@
-/** RG coverage: foliage red, depth-writing cores green. A conservative 1.5 CSS
- * pixel guard keeps bilinear target interpolation out of clean core contours. */
+/** RGB coverage: foliage red, depth-writing cores green, timed landings blue.
+ * A conservative 1.5 CSS pixel guard keeps the ambient mix off clean contours. */
 export const gardenMaskGLSL = /* glsl */ `
   uniform sampler2D uGardenMask;
   uniform vec2 uGardenTexel;
