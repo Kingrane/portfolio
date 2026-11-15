@@ -11,9 +11,10 @@ export interface Project {
   readonly title: string
   readonly description: string
   readonly tech: readonly string[]
-  /** Ссылка на живой результат (или на страницу пакета, если демо нет) */
+  /** Ссылка на живой результат (или на страницу пакета/модели, если демо нет) */
   readonly href: string
-  readonly repo: string
+  /** Исходники. Может отсутствовать, если проекта нет на GitHub. */
+  readonly repo?: string
   readonly group: ProjectGroup
   /**
    * Превью-скриншот. Если не задан, карточка рисует
@@ -23,6 +24,14 @@ export interface Project {
 }
 
 export const projects: Project[] = [
+  {
+    title: "Bobik-2B",
+    description:
+      "Русская чат-модель на базе Qwen3.5-2B, дообученная своими руками через Unsloth. LoRA r=32, 250 шагов, собственные датасеты и identity-набор. Отдаётся в GGUF под ollama и llama.cpp.",
+    tech: ["Python", "Qwen3.5-2B", "Unsloth", "LoRA", "GGUF"],
+    href: "https://huggingface.co/Kingrane/Bobik-2B",
+    group: "vibe",
+  },
   {
     title: "holoterm",
     description:
@@ -162,3 +171,16 @@ export const handmadeProjects: Project[] = projects.filter((p) => p.group === "h
 
 /** Все уникальные технологии в порядке первого появления — для чипов-фильтров. */
 export const allTech: string[] = Array.from(new Set(projects.flatMap((p) => p.tech)))
+
+export interface TechFacet {
+  readonly name: string
+  readonly count: number
+}
+
+/**
+ * Счётчики для фильтров: сколько проектов используют каждую технологию.
+ * Сортировка по популярности, затем по алфавиту — так первыми встают React/Next.
+ */
+export const techFacets: TechFacet[] = allTech
+  .map((name) => ({ name, count: projects.filter((p) => p.tech.includes(name)).length }))
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
