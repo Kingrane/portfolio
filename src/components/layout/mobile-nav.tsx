@@ -43,7 +43,7 @@ export function MobileNav() {
         aria-expanded={open}
         aria-controls="mobile-nav"
         aria-label="Открыть меню"
-        className="flex h-11 w-11 items-center justify-center text-ink md:hidden"
+        className="header-control flex h-11 w-11 items-center justify-center text-ink md:hidden"
       >
         <span aria-hidden className="block h-[9px] w-4 border-y border-current" />
       </button>

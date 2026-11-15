@@ -15,7 +15,7 @@ export function SiteHeader() {
       <div data-reading data-reading-fixed className="mx-auto flex h-14 w-full max-w-[var(--container-max)] items-center justify-between gap-3 px-[var(--gutter)]">
         <Link
           href="#top"
-          className="inline-flex min-h-11 items-center"
+          className="header-control inline-flex min-h-11 items-center"
           aria-label="Kingrane — на главную"
         >
           <span className="font-display text-[13px] uppercase tracking-[0.06em] text-ink">
@@ -28,7 +28,7 @@ export function SiteHeader() {
             <a
               key={item.href}
               href={item.href}
-              className="inline-flex min-h-11 items-center font-mono text-[11px] tracking-[0.06em] text-ink-dim transition-colors duration-300 hover:text-amber motion-reduce:transition-none"
+              className="header-control inline-flex min-h-11 items-center font-mono text-[11px] tracking-[0.06em] text-ink-dim transition-colors duration-300 hover:text-amber motion-reduce:transition-none"
             >
               {item.label}
             </a>
@@ -40,7 +40,7 @@ export function SiteHeader() {
             href="https://github.com/Kingrane"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[11px] tracking-[0.06em] text-ink-dim transition-colors duration-300 hover:text-amber motion-reduce:transition-none"
+            className="header-control inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[11px] tracking-[0.06em] text-ink-dim transition-colors duration-300 hover:text-amber motion-reduce:transition-none"
           >
             GitHub
             <span aria-hidden className="text-amber">

@@ -5,7 +5,6 @@ import { Stack } from "@/components/sections/stack";
 import { Projects } from "@/components/sections/projects";
 import { Handmade } from "@/components/sections/handmade";
 import { SmoothScroll } from "@/components/ui/smooth-scroll";
-import { Cursor } from "@/components/ui/cursor";
 import { SceneRoot } from "@/components/webgl/scene-root";
 
 /**
@@ -15,7 +14,6 @@ import { SceneRoot } from "@/components/webgl/scene-root";
  *   0  — WebGL-сцена, fixed, pointer-events: none
  *   10 — контент (обычный HTML: SEO, клавиатура, скринридеры)
  *   40 — шапка
- *   70 — курсор
  */
 export default function Home() {
   return (
@@ -23,7 +21,6 @@ export default function Home() {
       <a href="#main-content" className="fixed left-4 top-4 z-[100] -translate-y-24 bg-void px-4 py-3 text-ink focus:translate-y-0">Перейти к содержимому</a>
       <SceneRoot />
       <SmoothScroll />
-      <Cursor />
       <SiteHeader />
 
       <div className="relative z-[var(--z-content)] flex min-h-full flex-col">
