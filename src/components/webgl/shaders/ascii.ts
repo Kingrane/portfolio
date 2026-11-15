@@ -1,26 +1,47 @@
 import { readingZonesGLSL } from "./reading-zones";
+import { bayerGLSL } from "./bayer";
+import { gardenMaskGLSL } from "./garden-mask";
 
 export const asciiFragment = /* glsl */ `
   uniform sampler2D uGlyphAtlas;
   uniform vec2 uResolution; // CSS pixels, independent of renderer DPR
   uniform float uCell;
   uniform float uStrength;
+  uniform float uDebugFull;
+  uniform float uGain;
+  uniform float uGlow;
+  uniform vec4 uWorld; // hero, constellation, garden, dive activity
+  uniform vec4 uHole; // CSS center x/y, shadow radius, outer disk radius
+  uniform sampler2D uNodesMask;
+  ${gardenMaskGLSL}
+  uniform sampler2D uHoleMask;
+  uniform sampler2D uCleanStars;
+  uniform sampler2D uFieldStars;
+  uniform vec4 uEmitters[8]; // CSS x/y, radius, strength; slot 0 = pointer
+  uniform int uEmitterCount;
   uniform float uTime; // performance.now seconds, same epoch as event histories
   uniform vec4 uTrail[8]; // CSS x/y from top-left, birth, energy
   uniform float uTrailActive;
   ${readingZonesGLSL}
 
-  // Bayer recursion with an actual normalized 8x8 threshold, not noise.
-  float bayer2(vec2 p) {
-    vec2 bit = mod(floor(p), 2.0);
-    return mod(2.0 * bit.x + 3.0 * bit.y, 4.0);
-  }
-  float bayer8(vec2 p) {
-    return (16.0 * bayer2(p) + 4.0 * bayer2(p / 2.0) + bayer2(p / 4.0) + 0.5) / 64.0;
-  }
+  ${bayerGLSL}
   float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
   float cellHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  vec3 starColor(vec2 uv) {
+    vec2 garden = texture2D(uGardenMask, uv).rg;
+    // The corridor stars are behind the flower field. Keep their new sharp
+    // layer from shining through opaque petals or the clean amber cores.
+    float occlusion = clamp(max(garden.r, garden.g), 0.0, 1.0);
+    return texture2D(uCleanStars, uv).rgb * uWorld.x
+      + texture2D(uFieldStars, uv).rgb * (1.0 - occlusion);
+  }
+  vec3 sourceColor(vec2 uv, float preserveStars) {
+    vec3 color = texture2D(inputBuffer, uv).rgb;
+    if (preserveStars < 0.999) color += starColor(uv) * (1.0 - preserveStars);
+    return max(vec3(0.0), color);
+  }
   float atlasGlyph(float index, vec2 local) {
+    if (any(lessThan(local, vec2(0.0))) || any(greaterThan(local, vec2(1.0)))) return 0.0;
     vec2 atlasCell = vec2(mod(index, 8.0), floor(index / 8.0));
     vec2 atlasUv = (atlasCell + vec2(local.x, 1.0 - local.y)) / vec2(8.0, 2.0);
     return texture2D(uGlyphAtlas, atlasUv).r;
@@ -32,29 +53,57 @@ export const asciiFragment = /* glsl */ `
     vec2 local = fract(px / uCell);
     vec2 center = (index + 0.5) * uCell / uResolution;
     vec2 offset = uCell * 0.24 / uResolution;
+    vec2 screenCell = vec2(center.x, 1.0 - center.y) * uResolution;
+    float emitter = 0.0;
+    for (int i = 0; i < 8; i++) {
+      if (i >= uEmitterCount) break;
+      vec4 source = uEmitters[i];
+      float radius = max(1.0, source.z);
+      emitter = max(emitter, (1.0 - smoothstep(radius * 0.55, radius,
+        length(screenCell - source.xy))) * source.w);
+    }
+    float preserveStars = (1.0 - max(emitter, uDebugFull)) * (1.0 - uWorld.w);
+    vec3 stars = starColor(uv);
     // Four samples stabilize small moving highlights. Dark cells stay empty.
     vec3 cell = (
-      texture2D(inputBuffer, center + offset).rgb +
-      texture2D(inputBuffer, center - offset).rgb +
-      texture2D(inputBuffer, center + offset * vec2(1.0, -1.0)).rgb +
-      texture2D(inputBuffer, center + offset * vec2(-1.0, 1.0)).rgb
+      sourceColor(center + offset, preserveStars) +
+      sourceColor(center - offset, preserveStars) +
+      sourceColor(center + offset * vec2(1.0, -1.0), preserveStars) +
+      sourceColor(center + offset * vec2(-1.0, 1.0), preserveStars)
     ) * 0.25;
     float light = luma(cell);
-    float density = clamp(light / (0.6 + light), 0.0, 1.0);
-    float glyphIndex = floor(clamp(density * 10.0 + bayer8(index) - 0.5, 0.0, 9.0));
+    // The old HDR curve sent low-lit petals to a space/dot almost everywhere.
+    // A perceptual curve uses the whole ramp without raising the scene's light.
+    float density = sqrt(clamp(light / (0.18 + light), 0.0, 1.0));
+    float glyphIndex = floor(clamp(density * 11.0 + bayer8(index) - 0.5, 0.0, 10.0));
     float glyph = atlasGlyph(glyphIndex, local);
-    float edge = smoothstep(0.12, 0.58, length(uv - 0.5));
-    float litOnly = smoothstep(0.005, 0.07, light);
-    // Keep the brilliant core/ring clear; ASCII grows along the light's edges.
+    vec2 glowStep = vec2(0.85 / uCell);
+    float halo = (atlasGlyph(glyphIndex, local + vec2(glowStep.x, 0.0))
+      + atlasGlyph(glyphIndex, local - vec2(glowStep.x, 0.0))
+      + atlasGlyph(glyphIndex, local + vec2(0.0, glowStep.y))
+      + atlasGlyph(glyphIndex, local - vec2(0.0, glowStep.y))) * 0.25;
+    float litOnly = smoothstep(0.003, 0.028, light);
+    float distanceToHole = length(screenCell - uHole.xy);
+    float diskEdge = smoothstep(uHole.z * 1.18, uHole.z * 1.65, distanceToHole)
+      * (1.0 - smoothstep(uHole.w * 0.85, uHole.w, distanceToHole));
+    // Physical ring and brilliant core remain sharp; distant stars never fall
+    // inside a full-screen ambient vignette. Node regions use actual projection.
     float preserveCore = 1.0 - smoothstep(0.6, 1.8, luma(inputColor.rgb));
+    float heroMask = uWorld.x * diskEdge * preserveCore * litOnly * texture2D(uHoleMask, uv).a;
+    float nodesMask = uWorld.y * texture2D(uNodesMask, uv).r;
+    float gardenMask = uWorld.z * 0.65 * litOnly * gardenCoverage(uv);
+    float ambient = max(max(heroMask, nodesMask * 0.6), gardenMask);
+    ambient = max(ambient, uWorld.w * litOnly * 0.85);
     float protection = readingMask(uv);
-    float mask = uStrength * clamp(0.4 + edge * 0.6, 0.0, 1.0);
-    mask *= litOnly * preserveCore * (1.0 - protection);
-    vec3 color = mix(inputColor.rgb, cell * glyph * 2.1, mask);
+    float mask = max(clamp(ambient * uStrength, 0.0, 1.0), emitter) * (1.0 - protection);
+    // Full mode is a diagnostic, not a public render-mode switch.
+    mask = mix(mask, 1.0, uDebugFull);
+    float ink = glyph + max(0.0, halo - glyph) * uGlow;
+    vec3 ascii = light > 0.002 ? cell * ink * uGain : vec3(0.0);
+    vec3 color = mix(inputColor.rgb + stars * (1.0 - preserveStars), ascii, mask) + stars * preserveStars;
 
     // Independent light, not merely an ASCII mask over an existing bright scene.
     // Cell centers keep each glyph intact; screen px keep radii stable at any DPR.
-    vec2 screenCell = vec2(center.x, 1.0 - center.y) * uResolution;
     float trailLight = 0.0;
     if (uTrailActive > 0.5) for (int i = 0; i < 8; i++) {
       vec4 samplePoint = uTrail[i];

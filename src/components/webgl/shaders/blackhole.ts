@@ -274,13 +274,18 @@ export const blackholeFragment = /* glsl */ `
     if (uQuality > 0.4) {
       stars += 0.65 * sphericalStarLayer(skyDirection, angularPixel, 310.0, 47.7);
     }
-    if (escaped) radiance += transmission * stars;
+    // Coverage is disk emission only. The post pass must never infer it from
+    // the combined sky color: a lensed star is still a clean star, not a petal.
+    float diskCoverage = smoothstep(0.001, 0.025, dot(radiance, vec3(0.2126, 0.7152, 0.0722)));
+    vec3 skyRadiance = escaped ? transmission * stars : vec3(0.0);
+    radiance += skyRadiance;
 
     // Begin losing exposure before the observer crosses the emitting disk.
     // Previously the disk filled the portrait viewport at full exposure, then
     // vanished geometrically before the late fade could hide the discontinuity.
     float exposure = exp(-6.0 * dive * dive) * (1.0 - smoothstep(0.6, 0.98, dive));
+    cleanStars = vec4(skyRadiance * smoothstep(0.0, 1.0, uIntro) * exposure, 0.0);
     gl_FragColor = vec4(max(radiance, vec3(0.0))
-      * smoothstep(0.0, 1.0, uIntro) * exposure, uOpacity);
+      * smoothstep(0.0, 1.0, uIntro) * exposure, diskCoverage);
   }
 `;

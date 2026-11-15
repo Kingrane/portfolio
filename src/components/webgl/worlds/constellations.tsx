@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { pointerState } from "@/lib/store";
 import { worldState } from "@/scene/timeline";
+import { asciiSources } from "@/scene/ascii-sources";
 
 const nodeVertex = /* glsl */ `
   attribute vec3 aColor;
@@ -120,6 +121,7 @@ export function Constellations({ count }: { count: number }) {
 
   // Позиция курсора в мире — чтобы узлы тянулись к нему
   const pointerWorld = useRef(new THREE.Vector3(0, 0, -10));
+  const projected = useRef(new THREE.Vector3());
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const cam = state.camera;
@@ -202,6 +204,17 @@ export function Constellations({ count }: { count: number }) {
     if (group.current) {
       group.current.rotation.y = t * 0.045 + pointerState.nx * 0.18;
       group.current.rotation.x = pointerState.ny * -0.1;
+      group.current.updateMatrixWorld();
+      let nodes = 0;
+      if (visibility > 0.001) for (let i = 0; i < Math.min(count, 32); i++) {
+        projected.current.fromArray(arr, i * 3).applyMatrix4(group.current.matrixWorld).project(cam);
+        if (Math.abs(projected.current.x) > 1.1 || Math.abs(projected.current.y) > 1.1 || projected.current.z > 1) continue;
+        const offset = nodes++ * 3;
+        asciiSources.nodes[offset] = (projected.current.x + 1) * state.size.width * 0.5;
+        asciiSources.nodes[offset + 1] = (1 - projected.current.y) * state.size.height * 0.5;
+        asciiSources.nodes[offset + 2] = 28;
+      }
+      asciiSources.nodeCount = nodes;
     }
   });
 

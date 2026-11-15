@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import { blackholeFragment, blackholeVertex } from "../shaders/blackhole";
 import { pointerState } from "@/lib/store";
 import { worldState } from "@/scene/timeline";
+import { asciiSources } from "@/scene/ascii-sources";
 
 /**
  * Мир 1: чёрная дыра.
@@ -33,11 +34,16 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
       depthBuffer: false,
       stencilBuffer: false,
       generateMipmaps: false,
+      count: 2,
     });
     target.texture.colorSpace = THREE.NoColorSpace;
     const material = new THREE.ShaderMaterial({
       vertexShader: blackholeVertex,
-      fragmentShader: blackholeFragment,
+      fragmentShader: `layout(location = 0) out highp vec4 holeColor;
+        layout(location = 1) out highp vec4 cleanStars;
+        #define gl_FragColor holeColor
+        ${blackholeFragment}`,
+      glslVersion: THREE.GLSL3,
       depthWrite: false,
       depthTest: false,
       uniforms: {
@@ -63,7 +69,10 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     pipeline.current = { target, scene, camera: new THREE.Camera(), material };
     return () => {
       pipeline.current = null;
-      if (screen) screen.uniforms.uTexture.value = null;
+      if (asciiSources.hole === target.texture) asciiSources.hole = null;
+      if (asciiSources.cleanStars === target.textures[1]) asciiSources.cleanStars = null;
+    if (screen) screen.uniforms.uTexture.value = null;
+      if (screen) screen.uniforms.uStars.value = null;
       geometry.dispose();
       material.dispose();
       target.dispose();
@@ -127,6 +136,10 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     state.gl.render(current.scene, current.camera);
     state.gl.setRenderTarget(previous);
     display.current.uniforms.uTexture.value = current.target.texture;
+    display.current.uniforms.uStars.value = current.target.textures[1];
+    display.current.uniforms.uOpacity.value = worldState.hole;
+    asciiSources.hole = current.target.texture;
+    asciiSources.cleanStars = current.target.textures[1];
   }, -1);
 
   return (
@@ -134,12 +147,14 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
       <planeGeometry args={[2, 2]} />
       <shaderMaterial
         ref={display}
-        uniforms={{ uTexture: { value: null } }}
+        uniforms={{ uTexture: { value: null }, uStars: { value: null }, uOpacity: { value: 1 } }}
         vertexShader={blackholeVertex}
         fragmentShader={/* glsl */ `
           varying vec2 vUv;
           uniform sampler2D uTexture;
-          void main() { gl_FragColor = texture2D(uTexture, vUv); }
+          uniform sampler2D uStars;
+          uniform float uOpacity;
+          void main() { gl_FragColor = vec4(max(vec3(0.0), texture2D(uTexture, vUv).rgb - texture2D(uStars, vUv).rgb), uOpacity); }
         `}
         depthWrite={false}
         depthTest={false}

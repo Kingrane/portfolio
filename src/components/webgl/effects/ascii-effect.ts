@@ -3,12 +3,15 @@ import { BlendFunction, Effect } from "postprocessing";
 import { asciiFragment } from "../shaders/ascii";
 import { createReadingUniforms } from "../shaders/reading-zones";
 import { TRAIL_SAMPLES, type interactionState } from "@/scene/interaction";
+import { asciiSources, MAX_ASCII_EMITTERS } from "@/scene/ascii-sources";
+import { sceneTuning } from "@/scene/tuning";
 
 /** Owns no renderer/atlas: their lifecycle belongs to WorldPost. */
 export class AsciiEffectImpl extends Effect {
-  constructor({ texture, cell = 10, reading = createReadingUniforms() }: {
+  constructor({ texture, cell = 10, full = false, reading = createReadingUniforms() }: {
     texture: Texture;
     cell?: number;
+    full?: boolean;
     reading?: ReturnType<typeof createReadingUniforms>;
   }) {
     super("SignatureAscii", asciiFragment, {
@@ -18,6 +21,19 @@ export class AsciiEffectImpl extends Effect {
         ["uResolution", new Uniform(new Vector2(1, 1))],
         ["uCell", new Uniform(cell)],
         ["uStrength", new Uniform(0.35)],
+        ["uDebugFull", new Uniform(full ? 1 : 0)],
+        ["uGain", new Uniform(1.5)],
+        ["uGlow", new Uniform(0.12)],
+        ["uWorld", new Uniform(new Vector4())],
+        ["uHole", new Uniform(new Vector4())],
+        ["uNodesMask", new Uniform(null)],
+        ["uGardenMask", new Uniform(null)],
+        ["uGardenTexel", new Uniform(new Vector2(1, 1))],
+        ["uHoleMask", new Uniform(null)],
+        ["uCleanStars", new Uniform(null)],
+        ["uFieldStars", new Uniform(null)],
+        ["uEmitters", new Uniform(Array.from({ length: MAX_ASCII_EMITTERS }, () => new Vector4()))],
+        ["uEmitterCount", new Uniform(0)],
         ["uTime", new Uniform(0)],
         ["uTrail", new Uniform(Array.from({ length: TRAIL_SAMPLES }, () => new Vector4(0, 0, -1000, 0)))],
         ["uTrailActive", new Uniform(0)],
@@ -32,6 +48,12 @@ export class AsciiEffectImpl extends Effect {
 
   setResolution(width: number, height: number): void { this.uniforms.get("uResolution")!.value.set(width, height); }
   setStrength(value: number): void { this.uniforms.get("uStrength")!.value = value; }
+  setTuning(narrow: boolean): void {
+    this.setStrength(sceneTuning.ambient);
+    this.uniforms.get("uCell")!.value = narrow ? sceneTuning.cellMobile : sceneTuning.cellDesktop;
+    this.uniforms.get("uGain")!.value = sceneTuning.gain;
+    this.uniforms.get("uGlow")!.value = sceneTuning.glow;
+  }
   /** Fixed buffers copied in-place; no per-frame arrays or vectors are created. */
   setInteractions(history: typeof interactionState, time: number): void {
     const trail = this.uniforms.get("uTrail")!.value as Vector4[];
@@ -42,6 +64,13 @@ export class AsciiEffectImpl extends Effect {
     }
     this.uniforms.get("uTrailActive")!.value = active ? 1 : 0;
     this.uniforms.get("uTime")!.value = time;
+    const emitters = this.uniforms.get("uEmitters")!.value as Vector4[];
+    let count = 0;
+    for (let i = 0; i < MAX_ASCII_EMITTERS; i++) {
+      emitters[i].fromArray(asciiSources.emitters, i * 4);
+      if (emitters[i].z > 0 && emitters[i].w > 0) count = i + 1;
+    }
+    this.uniforms.get("uEmitterCount")!.value = count;
   }
 
   setReadingZones(rects: Vector4[], count: number, strengths?: Float32Array): void {

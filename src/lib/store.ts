@@ -7,6 +7,7 @@
  */
 
 import { clearAsciiInteractions, installAsciiInteractions, recordAsciiPointer } from "@/scene/interaction";
+import { clearAsciiEmitters, setAsciiEmitter } from "@/scene/ascii-sources";
 
 export interface PointerState {
   /** Пиксели от левого верхнего угла окна */
@@ -65,17 +66,20 @@ export function installInstrumentation(): () => void {
     pointerState.ny = -((e.clientY / h) * 2 - 1);
     pointerState.inside = true;
     if (!reduce.matches && !document.hidden) recordAsciiPointer(e.clientX, e.clientY, performance.now() * 0.001);
+    if (!reduce.matches && !document.hidden) setAsciiEmitter(0, e.clientX, e.clientY, 56, 1);
   };
   const onPointerDown = (e: PointerEvent) => {
     onPointerMove(e);
     pointerState.down = true;
   };
   const onPointerUp = () => (pointerState.down = false);
+  const onTouchEnd = (event: TouchEvent) => { if (!event.touches.length) onLeave(); };
   const onLeave = () => {
     pointerState.inside = false;
     pointerState.down = false;
+    setAsciiEmitter(0, 0, 0, 0, 0);
   };
-  const onBlur = () => { onLeave(); clearAsciiInteractions(); };
+  const onBlur = () => { onLeave(); clearAsciiInteractions(); clearAsciiEmitters(); };
   const onVisibility = () => { if (document.hidden) onBlur(); };
   const onPointerOut = (e: PointerEvent) => { if (!e.relatedTarget) onLeave(); };
 
@@ -96,9 +100,13 @@ export function installInstrumentation(): () => void {
       pointerState.nx = (t.clientX / w) * 2 - 1;
       pointerState.ny = -((t.clientY / h) * 2 - 1);
       pointerState.inside = true;
-      if (!reduce.matches && !document.hidden) recordAsciiPointer(t.clientX, t.clientY, performance.now() * 0.001);
+       if (!reduce.matches && !document.hidden) recordAsciiPointer(t.clientX, t.clientY, performance.now() * 0.001);
+       if (!reduce.matches && !document.hidden) setAsciiEmitter(0, t.clientX, t.clientY, 56, 1);
   };
   window.addEventListener("touchmove", onTouchMove, { passive: true });
+  window.addEventListener("touchend", onTouchEnd, { passive: true });
+  window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+  window.addEventListener("pointercancel", onLeave, { passive: true });
 
   return () => {
     window.removeEventListener("pointermove", onPointerMove);
@@ -109,6 +117,9 @@ export function installInstrumentation(): () => void {
     document.removeEventListener("pointerout", onPointerOut);
     document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("touchmove", onTouchMove);
+    window.removeEventListener("touchend", onTouchEnd);
+    window.removeEventListener("touchcancel", onTouchEnd);
+    window.removeEventListener("pointercancel", onLeave);
     cleanupInteractions();
     onLeave();
     installed = false;

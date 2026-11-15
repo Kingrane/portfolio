@@ -9,7 +9,7 @@ import * as THREE from "three";
  */
 
 /** Рампа плотности для ASCII-режима — от пустого к плотному. */
-export const ASCII_RAMP = " .:-=+*#%@";
+export const ASCII_RAMP = " ·.:-=+*#%@";
 
 const CELL = 32;
 const COLS = 8;

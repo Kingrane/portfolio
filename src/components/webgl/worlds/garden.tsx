@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import { pointerState } from "@/lib/store";
 import { worldState } from "@/scene/timeline";
 import { readingInfluence } from "@/scene/reading-zones";
+import { asciiSources } from "@/scene/ascii-sources";
 import { hashString, mulberry32 } from "@/lib/ascii";
 import {
   flowerVertex, flowerFragment, foliageVertex, foliageFragment,
@@ -65,6 +66,7 @@ interface Flower {
 }
 
 interface GardenResources {
+  coverage: THREE.Group;
   field: THREE.Group;
   flies: THREE.Points;
   flowers: Flower[];
@@ -168,6 +170,11 @@ export function Garden({ count = 360 }: { count?: number }) {
 
     const root = new THREE.Group();
     const field = new THREE.Group();
+    const coverage = new THREE.Group();
+    coverage.matrixAutoUpdate = false;
+    const coverageScene = new THREE.Scene();
+    coverageScene.add(coverage);
+    asciiSources.garden = coverageScene;
     root.add(field);
     const geometries: THREE.BufferGeometry[] = [];
     const materials: THREE.ShaderMaterial[] = [];
@@ -193,6 +200,21 @@ export function Garden({ count = 360 }: { count?: number }) {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.frustumCulled = false;
       field.add(mesh);
+      // Exact silhouette: same instancing, growth, wind and reading repulsion.
+      // Black cores write depth and remain holes in the white foliage mask.
+      const clean = material.fragmentShader === flowerCoreFragment;
+      const maskMaterial = new THREE.ShaderMaterial({
+        vertexShader: material.vertexShader,
+        fragmentShader: `uniform float uFade; void main() {
+          if (uFade < 0.004) discard;
+          gl_FragColor = vec4(${clean ? "0.0, 1.0, 0.0" : "1.0, 0.0, 0.0"}, 1.0);
+        }`,
+        uniforms: material.uniforms, side: THREE.DoubleSide, toneMapped: false,
+      });
+      materials.push(maskMaterial);
+      const maskMesh = new THREE.Mesh(geometry, maskMaterial);
+      maskMesh.frustumCulled = false;
+      coverage.add(maskMesh);
     };
 
     const petalBase = makePetalGeometry();
@@ -268,11 +290,12 @@ export function Garden({ count = 360 }: { count?: number }) {
     flies.frustumCulled = false;
     root.add(flies);
     container.add(root);
-    resources.current = { field, flies, flowers, protections, speciesProtections,
+    resources.current = { field, coverage, flies, flowers, protections, speciesProtections,
       protectionAttributes, geometries, materials, fireflyMaterial };
 
     return () => {
       resources.current = null;
+      if (asciiSources.garden === coverageScene) asciiSources.garden = null;
       container.remove(root);
       for (const geometry of geometries) geometry.dispose();
       for (const material of materials) material.dispose();
@@ -288,6 +311,7 @@ export function Garden({ count = 360 }: { count?: number }) {
     fade.current += (worldState.flowers - fade.current) * damping;
     flyFade.current += (worldState.fireflies - flyFade.current) * damping;
     r.field.visible = fade.current > 0.004 && worldState.growth > 0.004;
+    r.coverage.visible = r.field.visible;
     r.flies.visible = flyFade.current > 0.004;
     container.visible = r.field.visible || r.flies.visible;
     // Camera already has inertia. A second damping here makes the whole field
@@ -297,6 +321,7 @@ export function Garden({ count = 360 }: { count?: number }) {
     container.rotation.y = pointerState.nx * 0.025;
     if (!container.visible) return;
     container.updateMatrixWorld();
+    r.coverage.matrix.copy(container.matrixWorld);
 
     const time = state.clock.elapsedTime;
     if (r.flies.visible) {

@@ -60,7 +60,7 @@ export default function Scene() {
 
   const starCount = quality >= 0.5 ? (isNarrow ? 700 : 1400) : isNarrow ? 320 : 600;
   const flowerCount = quality >= 0.5 ? (isNarrow ? 170 : 360) : isNarrow ? 90 : 180;
-  const cell = isNarrow ? 13 : 10;
+  const cell = isNarrow ? 11 : 10;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0" aria-hidden data-world-canvas>

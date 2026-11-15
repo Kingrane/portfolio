@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { ScenePoster } from "./scene-poster";
+import { SceneTuner } from "./scene-tuner";
 
 /**
  * Ленивая загрузка сцены.
@@ -59,6 +60,7 @@ export function SceneRoot() {
     <>
       {support !== "yes" || reduce ? <ScenePoster /> : null}
       {support === "yes" && !reduce ? <Scene /> : null}
+      <SceneTuner />
     </>
   );
 }

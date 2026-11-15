@@ -57,6 +57,7 @@ const fragmentShader = /* glsl */ `
  */
 export function Starfield({ count = STAR_COUNT }: { count?: number }) {
   const mat = useRef<THREE.ShaderMaterial>(null);
+  const points = useRef<THREE.Points>(null);
   const dpr = useThree((s) => s.viewport.dpr);
 
   const geometry = useMemo(() => {
@@ -95,6 +96,9 @@ export function Starfield({ count = STAR_COUNT }: { count?: number }) {
   );
 
   useEffect(() => () => geometry.dispose(), [geometry]);
+  // Rendered into WorldPost's sharp star layer, never through glyph-density
+  // sampling. Keep geometry/material and the same camera/point-size uniforms.
+  useEffect(() => { points.current?.layers.set(1); }, []);
 
   useFrame((state) => {
     if (!mat.current) return;
@@ -103,7 +107,7 @@ export function Starfield({ count = STAR_COUNT }: { count?: number }) {
   });
 
   return (
-    <points geometry={geometry} frustumCulled={false}>
+    <points ref={points} geometry={geometry} frustumCulled={false}>
       <shaderMaterial
         ref={mat}
         uniforms={uniforms}
