@@ -204,6 +204,25 @@
   border-color: var(--color-line);
 }
 
+/* Hover-грань шапки не участвует в раскладке и не меняет hit area. */
+.header-control {
+  position: relative;
+}
+.header-control::before {
+  content: "";
+  position: absolute;
+  inset: 6px -7px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-xs);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms;
+}
+.header-control:hover::before,
+.header-control:focus-visible::before {
+  opacity: 1;
+}
+
 /* Кнопка с подчёркиванием-растяжкой */
 .link-line {
   position: relative;

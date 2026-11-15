@@ -2,6 +2,7 @@ import styles from "@/components/sections/hero.module.css";
 
 /** One fixed history for the existing scene; no canvas, RAF or React state. */
 export const TRAIL_SAMPLES = 8;
+export const TRAIL_LIFETIME = 0.775;
 export const interactionState = {
   /** CSS x/y from top-left, monotonic birth time in seconds, energy. */
   trail: new Float32Array(TRAIL_SAMPLES * 4),

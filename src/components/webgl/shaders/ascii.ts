@@ -1,6 +1,7 @@
 import { readingZonesGLSL } from "./reading-zones";
 import { bayerGLSL } from "./bayer";
 import { gardenMaskGLSL } from "./garden-mask";
+import { TRAIL_LIFETIME } from "@/scene/interaction";
 
 export const asciiFragment = /* glsl */ `
   uniform sampler2D uGlyphAtlas;
@@ -121,9 +122,9 @@ export const asciiFragment = /* glsl */ `
     if (uTrailActive > 0.5) for (int i = 0; i < 8; i++) {
       vec4 samplePoint = uTrail[i];
       float age = uTime - samplePoint.z;
-      if (age < 0.0 || age > 0.62 || samplePoint.w <= 0.0) continue;
-      float life = 1.0 - smoothstep(0.04, 0.62, age);
-      float radius = mix(36.0, 19.0, age / 0.62);
+      if (age < 0.0 || age > ${TRAIL_LIFETIME} || samplePoint.w <= 0.0) continue;
+      float life = 1.0 - smoothstep(0.05, ${TRAIL_LIFETIME}, age);
+      float radius = mix(32.4, 17.1, age / ${TRAIL_LIFETIME});
       float distanceToTrail = length(screenCell - samplePoint.xy);
       float footprint = 1.0 - smoothstep(radius * 0.15, radius, distanceToTrail);
       trailLight = max(trailLight, footprint * life * samplePoint.w);

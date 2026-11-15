@@ -2,7 +2,7 @@ import { Uniform, Vector2, Vector4, type Texture } from "three";
 import { BlendFunction, Effect } from "postprocessing";
 import { asciiFragment } from "../shaders/ascii";
 import { createReadingUniforms } from "../shaders/reading-zones";
-import { TRAIL_SAMPLES, type interactionState } from "@/scene/interaction";
+import { TRAIL_LIFETIME, TRAIL_SAMPLES, type interactionState } from "@/scene/interaction";
 import { asciiSources, MAX_ASCII_EMITTERS } from "@/scene/ascii-sources";
 import { sceneTuning } from "@/scene/tuning";
 
@@ -63,7 +63,7 @@ export class AsciiEffectImpl extends Effect {
     let active = false;
     for (let i = 0; i < TRAIL_SAMPLES; i++) {
       trail[i].fromArray(history.trail, i * 4);
-      if (time - trail[i].z < 0.62 && trail[i].w > 0) active = true;
+      if (time - trail[i].z < TRAIL_LIFETIME && trail[i].w > 0) active = true;
     }
     this.uniforms.get("uTrailActive")!.value = active ? 1 : 0;
     this.uniforms.get("uTime")!.value = time;
