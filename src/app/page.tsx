@@ -1,4 +1,4 @@
-import { projects, handmadeProjects } from "@/data/projects"
+import { vibeProjects, handmadeProjects } from "@/content/projects"
 import { ProjectCard } from "@/components/project-card"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { Background } from "@/components/background"
@@ -60,7 +60,7 @@ export default function Home() {
           </ScrollReveal>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {projects.map((project, i) => (
+            {vibeProjects.map((project, i) => (
               <ProjectCard key={project.title} project={project} index={i} />
             ))}
           </div>

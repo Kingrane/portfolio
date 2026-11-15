@@ -1,72 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { languages, technologies, type StackItem } from "@/content/stack"
 
-type Item = { name: string; src?: string; icon?: React.ReactNode }
-
-const languages: Item[] = [
-  {
-    name: "Python",
-    src: "https://cdn.simpleicons.org/python/f0f2f5",
-  },
-  {
-    name: "C#",
-    src: "https://cdn.simpleicons.org/c/f0f2f5",
-  },
-  {
-    name: "JavaScript",
-    src: "https://cdn.simpleicons.org/javascript/f0f2f5",
-  },
-  {
-    name: "HTML5",
-    src: "https://cdn.simpleicons.org/html5/f0f2f5",
-  },
-  {
-    name: "CSS3",
-    src: "https://cdn.simpleicons.org/css/f0f2f5",
-  },
-  {
-    name: "React",
-    src: "https://cdn.simpleicons.org/react/f0f2f5",
-  },
-]
-
-const technologies: Item[] = [
-  {
-    name: "Claude",
-    src: "https://cdn.simpleicons.org/claude/f0f2f5",
-  },
-  {
-    name: "OpenCode",
-    src: "https://cdn.simpleicons.org/opencode/f0f2f5",
-  },
-  {
-    name: "Vercel",
-    src: "https://cdn.simpleicons.org/vercel/f0f2f5",
-  },
-  {
-    name: "Google AI",
-    src: "https://cdn.simpleicons.org/google/f0f2f5",
-  },
-  {
-    name: "Git",
-    src: "https://cdn.simpleicons.org/git/f0f2f5",
-  },
-  {
-    name: "Jetbrains IDES",
-    src: "https://cdn.simpleicons.org/jetbrains/f0f2f5",
-  },
-  {
-    name: "Linux :)",
-    src: "https://cdn.simpleicons.org/linux/f0f2f5",
-  },
-  {
-    name: "Blender",
-    src: "https://cdn.simpleicons.org/blender/f0f2f5",
-  },
-]
-
-function Row({ items, reverse }: { items: Item[]; reverse?: boolean }) {
+function Row({ items, reverse }: { items: StackItem[]; reverse?: boolean }) {
   return (
     <div className="relative flex overflow-hidden">
       <motion.div

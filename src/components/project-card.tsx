@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from "react"
 import { motion } from "framer-motion"
-import type { Project } from "@/data/projects"
+import type { Project } from "@/content/projects"
 
 export function ProjectCard({ project, index }: { project: Project; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null)
