@@ -6,11 +6,11 @@ export function Handmade() {
   return (
     <SectionShell id="garden">
       <Reveal>
-        <div data-reading className="mb-10 w-fit max-w-full">
-          <h2 className="max-w-xl font-display text-[clamp(2rem,4.6vw,3.6rem)] font-light leading-[1.06] tracking-[-0.03em] text-ink">
+        <div className="mb-10 w-fit max-w-full">
+          <h2 data-reading className="max-w-xl font-display text-[clamp(2rem,4.6vw,3.6rem)] font-light leading-[1.06] tracking-[-0.03em] text-ink">
             А тут <span className="whitespace-nowrap">я не вайбкодил</span>
           </h2>
-          <p className="mt-5 text-sm leading-relaxed text-ink-dim">Ручками сам делал.</p>
+          <p data-reading className="mt-5 text-sm leading-relaxed text-ink-dim">Ручками сам делал.</p>
         </div>
 
         <ul className="border-t border-line">
@@ -31,7 +31,7 @@ function GardenRow({
   index: number;
 }) {
   return (
-    <li data-reading className="group relative border-b border-line bg-void/80">
+    <li className="group relative border-b border-line">
       <a
         href={project.href}
         target="_blank"
@@ -43,15 +43,15 @@ function GardenRow({
         </span>
 
         <div className="min-w-0">
-          <h3 className="break-words font-display text-[clamp(1.1rem,2.4vw,1.6rem)] font-normal tracking-[-0.02em] text-ink transition-colors duration-300 group-hover:text-amber motion-reduce:transition-none">
+          <h3 data-reading className="break-words font-display text-[clamp(1.1rem,2.4vw,1.6rem)] font-normal tracking-[-0.02em] text-ink transition-colors duration-300 group-hover:text-amber group-focus-within:text-amber motion-reduce:transition-none">
             {project.title}
           </h3>
-          <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-ink-dim">
+          <p data-reading className="mt-2 max-w-xl text-[13px] leading-relaxed text-ink-dim">
             {project.description}
           </p>
           <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
             {project.tech.map((tech) => (
-              <li key={tech} className="max-w-full break-words font-mono text-[11px] leading-relaxed tracking-[0.04em] text-ink-dim">
+              <li data-reading key={tech} className="max-w-full break-words font-mono text-[11px] leading-relaxed tracking-[0.04em] text-ink-dim">
                 {tech}
               </li>
             ))}

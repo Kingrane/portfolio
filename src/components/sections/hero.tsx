@@ -8,14 +8,15 @@ export function Hero() {
       aria-labelledby="hero-title"
     >
       <div className="relative mx-auto w-full max-w-[var(--container-max)] px-[var(--gutter)]">
-        <div data-reading className="w-fit max-w-full">
-          <p className="mb-6 max-w-lg font-mono text-[11px] uppercase leading-relaxed tracking-[0.06em] text-ink-dim">
+        <div className="w-fit max-w-full">
+          <p data-reading className="mb-6 max-w-lg font-mono text-[11px] uppercase leading-relaxed tracking-[0.06em] text-ink-dim">
             PORTFOLIO — FULL-STACK VIBE DEVELOPER
           </p>
 
           <h1
             id="hero-title"
-            className="font-display text-[clamp(2.9rem,9.4vw,8.4rem)] font-light leading-[0.92] tracking-[-0.045em] text-ink"
+            data-reading="display"
+            className={`${styles.title} font-display text-[clamp(2.9rem,9.4vw,8.4rem)] font-light leading-[0.92] tracking-[-0.045em] text-white`}
           >
             <span className="sr-only">KINGRANE</span>
             <span aria-hidden className="inline-flex">
@@ -29,11 +30,12 @@ export function Hero() {
             </span>
           </h1>
 
-          <p className="mt-7 max-w-lg text-[15px] leading-relaxed text-ink-dim sm:text-base">
+          <p data-reading className="mt-7 max-w-lg text-[15px] leading-relaxed text-ink-dim sm:text-base">
             Full-stack vibe developer. Балуюсь с вебом, 3D, AI.
           </p>
 
           <a
+            data-reading
             href="https://github.com/Kingrane"
             target="_blank"
             rel="noopener noreferrer"

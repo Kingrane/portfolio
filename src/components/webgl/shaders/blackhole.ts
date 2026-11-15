@@ -1,20 +1,10 @@
 import { glslNoise } from "./common";
 
 /**
- * ЧЁРНАЯ ДЫРА (hero) — один fullscreen-квад, вся сцена в фрагментном шейдере.
- *
- * Почему не настоящий raymarching: он стоит десятки шагов на пиксель и убивает
- * мобилки. Здесь вместо физики — визуальная подделка, которая читается как
- * гравитационное линзирование:
- *
- *  1. Луч «искривляется» к центру: чем ближе к дыре, тем сильнее сдвигается
- *     точка сэмплирования фона (warped).
- *  2. Фон — три слоя звёзд с мерцанием и параллаксом.
- *  3. Аккреционный диск — наклонённое кольцо из fbm-шума, вращается.
- *  4. Фотонное кольцо + чёрная тень + ударная волна от клика.
- *
- * Стоимость: линейная, без циклов по сцене. На слабых устройствах uQuality
- * уменьшает число октав и слоёв звёзд.
+ * Schwarzschild-inspired null-ray integration, in units of r_s = 1.
+ * The disk is a thin emitting volume, not a projected ring. Its higher-order
+ * images, the photon ring and the captured shadow follow from the same rays.
+ * Output is linear HDR; the scene's final pass owns tone mapping/dithering.
  */
 export const blackholeVertex = /* glsl */ `
   varying vec2 vUv;
@@ -27,130 +17,264 @@ export const blackholeVertex = /* glsl */ `
 
 export const blackholeFragment = /* glsl */ `
   precision highp float;
+  precision highp int;
 
   varying vec2 vUv;
   uniform float uTime;
   uniform float uAspect;
-  uniform vec2 uPointer;   // -1..1, сглаженный курсор
-  uniform float uPulse;    // 0..1 — ударная волна после клика
-  uniform float uIntro;    // 0..1 — появление сцены
-  uniform float uQuality;  // 1.0 = десктоп, 0.0 = слабое устройство
+  uniform vec2 uPointer;   // Smoothed -1..1 coordinates.
+  uniform float uPulse;    // 0 = inactive; otherwise shockwave progress 0..1.
+  uniform float uIntro;
+  uniform float uQuality;  // Controls disk detail and the second star layer.
+  uniform int uSteps;      // 80..96 desktop, 32..40 mobile; 0 uses a fallback.
+  uniform vec2 uResolution; // Actual HDR target size in pixels, independent of DPR.
   uniform float uOpacity;
-  uniform float uDive;     // scroll-driven dive; phase B replaces the optical model
-  uniform float uZoom;     // >1 — дыра меньше (нужно на узких экранах)
-  uniform vec2 uCenter;    // смещение дыры в кадре (не по центру — по композиции)
+  uniform float uDive;     // 0..1: camera radius 18 -> 1.04 and exposure falls.
+  uniform float uZoom;     // Image-plane multiplier; larger makes the hole smaller.
+  uniform vec2 uCenter;    // (uv - .5) * vec2(aspect, 1), not normalized UV.
 
   ${glslNoise}
 
-  // Три слоя звёзд: разные масштабы дают глубину
-  float starLayer(vec2 p, float scale, float threshold, float seed) {
-    vec2 g = p * scale + seed;
-    vec2 id = floor(g);
-    vec2 f = fract(g) - 0.5;
-    float h = hash21(id);
-    // одиночная яркая точка в ячейке
-    float bright = step(threshold, h);
-    float core = 1.0 - smoothstep(0.0, 0.16, length(f));
-    float twinkle = 0.45 + 0.55 * sin(uTime * 1.7 + h * 52.0);
-    return bright * core * twinkle;
+  vec3 acceleration(vec3 position, float angularMomentum2) {
+    float inverseR = inversesqrt(max(dot(position, position), 0.25));
+    float inverseR2 = inverseR * inverseR;
+    return -1.5 * angularMomentum2 * position
+      * inverseR2 * inverseR2 * inverseR;
+  }
+
+  // Analytic tail of the central-force integral along a straight outgoing ray.
+  // This also supplies the weak-field shortcut beyond the entire disk.
+  vec3 asymptoticDirection(vec3 position, vec3 velocity, bool weakField) {
+    vec3 direction = normalize(velocity);
+    float along = dot(position, direction);
+    vec3 impact = position - direction * along;
+    float impact2 = max(dot(impact, impact), 0.0001);
+    float t = clamp(along / length(position), -1.0, 1.0);
+    float tail = (1.0 - t) * (1.0 - t) * (2.0 + t);
+    float correction = weakField ? 1.0 + 15.0 * PI / (32.0 * sqrt(impact2)) : 1.0;
+    return normalize(direction - impact * (0.5 * tail * correction / impact2));
+  }
+
+  // Primitive of exp(-abs(y) / height). Integrating a complete ray segment
+  // avoids missing a disk much thinner than an adaptive geodesic step.
+  float verticalPrimitive(float y, float height) {
+    return sign(y) * height * (1.0 - exp(-abs(y) / height));
+  }
+
+  void integrateDisk(
+    vec3 start, vec3 end, vec3 velocity, float beamWidth,
+    inout vec3 radiance, inout float transmission
+  ) {
+    vec3 segment = end - start;
+    float dy = segment.y;
+    float planeT = abs(dy) > 0.0001 ? clamp(-start.y / dy, 0.0, 1.0) : 0.5;
+    vec3 hit = mix(start, end, planeT);
+    float radius = length(hit.xz);
+    float edgeAA = max(0.015, beamWidth);
+    if (radius < 2.6 - edgeAA || radius > 9.0 + edgeAA) return;
+
+    float height = 0.028 + 0.007 * radius;
+    float filteredHeight = sqrt(height * height + beamWidth * beamWidth * 0.35);
+    float minY = start.y * end.y <= 0.0 ? 0.0 : min(abs(start.y), abs(end.y));
+    if (minY > filteredHeight * 7.0) return;
+
+    float segmentLength = length(segment);
+    float column = abs(dy) > 0.0001
+      ? (verticalPrimitive(end.y, filteredHeight) - verticalPrimitive(start.y, filteredHeight))
+        * segmentLength / dy
+      : exp(-abs(hit.y) / filteredHeight) * segmentLength;
+    column = max(0.0, column) / (2.0 * filteredHeight);
+
+    float edges = smoothstep(2.6 - edgeAA, 2.88 + edgeAA, radius)
+      * (1.0 - smoothstep(8.5 - edgeAA, 9.0 + edgeAA, radius));
+    if (column * edges < 0.0001) return;
+
+    // Angular noise is sampled on a circle, including every octave. There is
+    // no atan branch-cut seam, even after differential rotation shears it.
+    float angle = atan(hit.z, hit.x);
+    float omega = 1.35 / (radius * sqrt(radius));
+    float phase = angle - uTime * omega;
+    vec2 flow = vec2(cos(phase), sin(phase));
+    float turbulence = 0.64 * noise(flow * 3.8 + radius * vec2(0.79, -1.17))
+      + 0.28 * noise(flow * 8.1 + radius * vec2(1.61, 2.03));
+    if (uQuality > 0.4) {
+      turbulence += 0.08 * noise(flow * 17.3 + radius * vec2(3.37, -4.21));
+    }
+
+    // Average unresolved radial striations, especially for grazing segments.
+    float radialSpan = abs(dot(segment.xz, hit.xz / radius))
+      * min(1.0, 2.0 * filteredHeight / max(abs(dy), 0.0001));
+    float footprint = max(beamWidth, radialSpan * 0.5);
+    float stripeContrast = 1.0 / (1.0 + 72.0 * footprint * footprint);
+    float stripes = 0.5 + 0.5 * stripeContrast
+      * sin(radius * 19.0 + turbulence * 7.5 + 1.6 * sin(phase * 6.0 + radius * 2.0));
+    float structure = (0.55 + 1.1 * turbulence) * (0.48 + 0.94 * stripes);
+
+    vec3 orbitalDirection = vec3(-hit.z, 0.0, hit.x) / radius;
+    float orbitalSpeed = sqrt(0.5 / (radius - 1.0));
+    float towardObserver = dot(orbitalDirection, -normalize(velocity));
+    float doppler = pow(max(0.24, 1.0 + orbitalSpeed * towardObserver), 3.0);
+    float gravitationalShift = sqrt(1.0 - 1.0 / radius);
+    vec3 tint = mix(vec3(1.0, 0.86, 0.67), vec3(1.0, 0.37, 0.075),
+      smoothstep(2.8, 6.2, radius));
+    tint = mix(tint, vec3(1.0, 0.23, 0.025), smoothstep(6.0, 9.0, radius));
+    vec3 emission = tint * (6.0 * pow(2.6 / radius, 1.8)) * structure
+      * doppler * gravitationalShift * gravitationalShift * gravitationalShift;
+
+    float opticalDepth = min(3.0, column * edges * (0.16 + 0.15 * structure));
+    float alpha = 1.0 - exp(-opticalDepth);
+    radiance += transmission * alpha * emission;
+    transmission *= 1.0 - alpha;
+  }
+
+  vec3 sphericalStarLayer(vec3 direction, float angularPixel, float scale, float seed) {
+    vec2 spherical = vec2(
+      atan(direction.z, direction.x) / TAU + 0.5,
+      asin(clamp(direction.y, -1.0, 1.0)) / PI + 0.5
+    );
+    vec2 grid = spherical * vec2(scale, scale * 0.5);
+    vec2 id = floor(grid);
+    // Canonical longitude IDs make the hash field periodic at +/- pi.
+    id.x = mod(id.x, scale);
+    id.y = clamp(id.y, 0.0, scale * 0.5 - 1.0);
+    vec2 key = id + vec2(seed, seed * 1.73);
+    float exists = step(0.966, hash21(key + vec2(5.19, 12.71)));
+    vec2 center = 0.2 + 0.6 * hash22(key + vec2(23.1, 8.7));
+    vec2 offset = fract(grid) - center;
+    offset.x *= max(0.12, cos((spherical.y - 0.5) * PI));
+
+    float size = mix(0.035, 0.085, hash21(key + vec2(41.3, 79.7)));
+    float aa = max(0.008, angularPixel * scale / TAU);
+    float variance = size * size + aa * aa * 0.5;
+    float core = exp(-dot(offset, offset) / variance) * size * size / variance;
+    core *= 1.0 - smoothstep(3.0 * sqrt(variance), 4.0 * sqrt(variance), length(offset));
+
+    // Four different seeds: brightness, oscillation amplitude, phase and
+    // frequency are independent. Even the deepest twinkle stays >= 0.56.
+    float brightness = mix(0.65, 2.7, pow(hash21(key + vec2(61.7, 3.9)), 3.0));
+    float amplitude = 0.1 + 0.12 * hash21(key + vec2(91.1, 17.3));
+    float phase = TAU * hash21(key + vec2(7.7, 137.9));
+    float frequency = 0.33 + 1.63 * hash21(key + vec2(173.3, 47.1));
+    float twinkle = 1.0 - amplitude + amplitude * sin(uTime * frequency + phase);
+    vec3 tint = mix(vec3(0.94, 0.92, 0.88), vec3(1.0, 0.69, 0.32),
+      pow(hash21(key + vec2(113.7, 53.9)), 6.0));
+    return tint * exists * core * brightness * twinkle;
   }
 
   void main() {
-    // «Плоские» координаты пикселя: x учитывает пропорции экрана
+    if (uOpacity < 0.0001 || uIntro <= 0.0) {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      return;
+    }
+
     vec2 sp = (vUv - 0.5) * vec2(uAspect, 1.0);
+    vec2 p = (sp - uCenter - uPointer * 0.007) * max(0.15, uZoom);
+    if (uPulse > 0.0 && uPulse < 1.0) {
+      float distanceToWave = length(p) - (0.26 + uPulse * 1.1);
+      float wave = exp(-distanceToWave * distanceToWave / 0.0012)
+        * sin(distanceToWave * 90.0) * sin(PI * uPulse) * (1.0 - uPulse);
+      // Refraction only: no painted luminous circle over the physical image.
+      p += p / max(length(p), 0.001) * wave * 0.009;
+    }
+    // Standard derivatives are available to Three's GLSL1 ShaderMaterial on
+    // WebGL2. The fallback also supports the previous uniform contract.
+    vec2 pixelSpan = vec2(uAspect, 1.0) * max(0.15, uZoom) / max(uResolution, vec2(1.0));
+    float rayCone = uResolution.y > 1.0
+      ? 0.6 * max(pixelSpan.x, pixelSpan.y)
+      : 0.6 * max(length(dFdx(p)), length(dFdy(p)));
 
-    // Параллакс: вся сцена едва заметно уезжает за курсором
-    vec2 parallax = uPointer * 0.03;
-    // uZoom отдаляет точку сэмплирования — объект кажется меньше
-    vec2 p = (sp - uCenter - parallax) * uZoom;
+    float dive = clamp(uDive, 0.0, 1.0);
+    float cameraRadius = mix(18.0, 1.04, pow(dive, 0.82));
+    float yaw = 0.028 * sin(uTime * 0.075) + uPointer.x * 0.045;
+    float elevation = 0.11 + 0.012 * sin(uTime * 0.11) + uPointer.y * 0.025 + dive * 0.14;
+    vec3 cameraDirection = vec3(sin(yaw) * cos(elevation), sin(elevation), cos(yaw) * cos(elevation));
+    vec3 position = cameraDirection * cameraRadius;
+    vec3 forward = -cameraDirection;
+    vec3 right = normalize(cross(forward, vec3(0.0, 1.0, 0.0)));
+    vec3 up = cross(right, forward);
+    float roll = -0.065 + 0.012 * sin(uTime * 0.061) + uPointer.x * 0.018 + dive * 0.13;
+    vec2 image = vec2(cos(roll) * p.x - sin(roll) * p.y, sin(roll) * p.x + cos(roll) * p.y);
+    // uZoom=1: vertical FOV=33.4 deg, shadow radius ~0.244 screen-heights.
+    vec3 velocity = normalize(forward + 0.6 * (right * image.x + up * image.y));
+    vec3 angularMomentum = cross(position, velocity);
+    float angularMomentum2 = dot(angularMomentum, angularMomentum);
+    vec3 radiance = vec3(0.0);
+    float transmission = 1.0;
+    float traveled = 0.0;
+    bool escaped = false;
+    vec3 skyDirection = velocity;
+    vec3 weakSkyDirection = velocity;
+    if (angularMomentum2 > 90.25 && cameraRadius > 12.0) {
+      weakSkyDirection = asymptoticDirection(position, velocity, true);
+    }
 
-    p *= 1.0 - uDive * 0.65;
+    int steps = uSteps;
+    if (steps <= 0) steps = uQuality > 0.4 ? 88 : 36;
+    if (steps < 32) steps = 32;
+    if (steps > 96) steps = 96;
+    float stepFraction = 13.5 / float(steps);
 
-    float intro = smoothstep(0.0, 1.0, uIntro);
+    // At b > 10.5 the turning radius exceeds 9.9: no part of the r<=9
+    // disk can be hit. Restrict the shortcut to observers outside it too.
+    if (angularMomentum2 > 110.25 && cameraRadius > 12.0) {
+      skyDirection = weakSkyDirection;
+      escaped = true;
+    } else {
+      for (int i = 0; i < 96; i++) {
+        if (i >= steps) break;
+        float radius2 = dot(position, position);
+        if (radius2 <= 1.0) break;
+        if (radius2 > 576.0 && dot(position, velocity) > 0.0) {
+          skyDirection = asymptoticDirection(position, velocity, false);
+          escaped = true;
+          break;
+        }
 
-    float r = length(p);
-    // Направление от центра; +1e-5 защищает от деления на ноль
-    vec2 dir = p / (r + 1e-5);
+        float radius = sqrt(radius2);
+        float dt = min(2.8, stepFraction * radius / max(length(velocity), 0.5));
+        float dt2 = dt * dt;
+        // Fourth-order Runge-Kutta-Nystrom for x''=a(x), three force samples.
+        // Do NOT normalize velocity: that destroys the null-ray effective
+        // potential and the unstable photon orbit at r=1.5.
+        vec3 a0 = acceleration(position, angularMomentum2);
+        vec3 am = acceleration(position + velocity * (0.5 * dt) + a0 * (0.125 * dt2), angularMomentum2);
+        vec3 ae = acceleration(position + velocity * dt + am * (0.5 * dt2), angularMomentum2);
+        vec3 nextPosition = position + velocity * dt + (a0 + 2.0 * am) * (dt2 / 6.0);
+        vec3 nextVelocity = velocity + (a0 + 4.0 * am + ae) * (dt / 6.0);
 
-    // --- 1. Линзирование ------------------------------------------------
-    // Искривление сильнее у центра (1/(r+0.1)), звёзды рядом с дырой буквально
-    // «затягивает» по окружности.
-    float bend = (0.042 / (r + 0.09));
-    vec2 warped = p - dir * bend;
-    // Тангенциальное закручивание: то, что делает кольцо Эйнштейна
-    float swirlAngle = bend * 1.8;
-    warped = rot(swirlAngle) * warped;
+        float beamWidth = max(0.006, rayCone * traveled * 0.65);
+        integrateDisk(position, nextPosition, velocity + nextVelocity, beamWidth, radiance, transmission);
+        traveled += length(nextPosition - position);
+        position = nextPosition;
+        velocity = nextVelocity;
+        skyDirection = normalize(velocity);
+        if (transmission < 0.008) break;
+      }
+      // A final outward step can cross the escape boundary at the budget.
+      if (dot(position, position) > 576.0 && dot(position, velocity) > 0.0) {
+        skyDirection = asymptoticDirection(position, velocity, false);
+        escaped = true;
+      }
+    }
+    // Blend only the far sky before entering the shortcut. Disk radiance is
+    // untouched; the approximate/exact boundary cannot create a moving seam.
+    if (escaped && angularMomentum2 > 90.25 && cameraRadius > 12.0) {
+      skyDirection = normalize(mix(skyDirection, weakSkyDirection,
+        smoothstep(9.5, 10.5, sqrt(angularMomentum2))));
+    }
 
-    // --- 2. Фон: звёзды ------------------------------------------------
-    float stars = 0.0;
-    stars += starLayer(warped, 42.0, 0.9905, 3.1) * 1.00;
+    // Evaluate sky derivatives after all lanes leave the adaptive loop.
+    // Directions, not longitude UVs, keep AA continuous at the spherical seam.
+    float angularPixel = max(rayCone,
+      max(length(dFdx(skyDirection)), length(dFdy(skyDirection))));
+    vec3 stars = sphericalStarLayer(skyDirection, angularPixel, 180.0, 3.1);
     if (uQuality > 0.4) {
-      stars += starLayer(warped, 78.0, 0.994, 11.7) * 0.7;
-      stars += starLayer(warped, 128.0, 0.996, 27.3) * 0.5;
+      stars += 0.65 * sphericalStarLayer(skyDirection, angularPixel, 310.0, 47.7);
     }
+    if (escaped) radiance += transmission * stars;
 
-    // Цвет далёких звёзд: холодный ирис с редкими янтарными вкраплениями
-    vec3 starTint = mix(vec3(0.86), vec3(1.0, 0.65, 0.26), hash21(floor(warped * 20.0)));
-    // No positive low-frequency noise or emissive grey floor in empty space.
-    vec3 col = starTint * stars * 1.15;
-
-    // --- 3. Аккреционный диск ------------------------------------------
-    const float R = 0.168;          // радиус горизонта событий
-    vec2 d = rot(-0.22) * p;
-    // Приплюснутая полярная система: диск читается как лежащий в плоскости,
-    // а не как круг перед камерой
-    const float SQUASH = 0.30;
-    vec2 de = vec2(d.x, d.y / SQUASH);
-    float dr = length(de);
-    float ang = atan(de.y, de.x);
-
-    // Кольцо: от горизонта событий наружу, с мягкими краями
-    float inner = smoothstep(R * 0.98, R * 1.34, dr);
-    float outer = 1.0 - smoothstep(0.26, 0.54, dr);
-    float band = inner * outer;
-
-    // Завихрения: шум по углу и радиусу, медленно вращается вокруг дыры
-    // Periodic angular coordinates remove atan's branch-cut seam.
-    vec2 flow = vec2(cos(ang - uTime * 0.1), sin(ang - uTime * 0.1));
-    float streak = fbm(flow * (3.0 + dr * 9.0), uQuality > 0.4 ? 5 : 3);
-    streak = pow(clamp(streak, 0.0, 1.0), 1.35);
-    float disk = band * (0.22 + 1.5 * streak);
-
-    // Раскалённый внутренний край у самого горизонта
-    float rim = exp(-abs(dr - R * 1.14) * 24.0) * 0.8;
-
-    vec3 hot = vec3(2.4, 1.45, 0.62);
-    vec3 cool = vec3(0.85, 0.21, 0.035);
-    vec3 diskCol = mix(hot, cool, smoothstep(R, 0.58, dr));
-    diskCol += hot * rim;
-
-    // Диск виден только снаружи тени, с мягким краем
-    float shadowMask = smoothstep(R * 0.95, R * 1.10, dr);
-    col += diskCol * disk * shadowMask;
-
-    // --- 4. Тень, фотонное кольцо, волна -------------------------------
-    // Тень — просто гасим всё внутри радиуса
-    float shadow = 1.0 - smoothstep(R * 0.80, R * 1.06, r);
-    col *= (1.0 - shadow * 0.99);
-
-    // Фотонное кольцо: тонкая яркая окружность на границе
-    float ring = exp(-abs(r - R * 1.03) * 130.0);
-    col += vec3(1.8, 1.3, 0.7) * ring * 0.75;
-
-    // Ударная волна от клика: расходящееся кольцо с затуханием
-    if (uPulse > 0.001) {
-      float waveR = R + uPulse * 1.1;
-      float wave = exp(-abs(r - waveR) * 70.0) * (1.0 - uPulse);
-      col += hot * wave * 0.5;
-      // лёгкое возмущение самого диска
-      col += diskCol * disk * wave * 0.35;
-    }
-
-    // --- 5. Пост ---------------------------------------------------------
-    // Виньетка по экранным координатам: края тонут в бездне
-    float vig = 1.0 - smoothstep(0.15, 1.05, length(sp * vec2(0.82, 1.0)));
-    col *= 0.30 + 0.70 * vig;
-
-    gl_FragColor = vec4(max(col, 0.0) * intro * uOpacity, 1.0);
+    float exposure = 1.0 - smoothstep(0.58, 0.96, dive);
+    gl_FragColor = vec4(max(radiance, vec3(0.0))
+      * smoothstep(0.0, 1.0, uIntro) * uOpacity * exposure, 1.0);
   }
 `;

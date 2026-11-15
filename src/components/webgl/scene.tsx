@@ -57,15 +57,15 @@ export default function Scene() {
     };
   }, []);
 
-  const starCount = quality > 0.7 ? (isNarrow ? 700 : 1400) : quality > 0.4 ? 600 : 320;
-  const flowerCount = quality > 0.7 ? (isNarrow ? 80 : 150) : 60;
+  const starCount = quality >= 0.5 ? (isNarrow ? 700 : 1400) : isNarrow ? 320 : 600;
+  const flowerCount = quality >= 0.5 ? (isNarrow ? 80 : 150) : 60;
   const cell = isNarrow ? 13 : 10;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0" aria-hidden data-world-canvas>
       <Canvas
         frameloop={visible ? "always" : "never"}
-        dpr={Math.max(1, Math.min(window.devicePixelRatio, (isNarrow ? 1.4 : 1.8) * quality))}
+        dpr={Math.max(1, Math.min(window.devicePixelRatio, (isNarrow ? 1.4 : 1.8) * (quality < 0.5 ? 0.7 : 1)))}
         camera={{ fov: 55, position: [0, 0, 0], near: 0.1, far: 140 }}
         gl={{
           antialias: false,
@@ -90,9 +90,11 @@ export default function Scene() {
         }}
       >
         <PerformanceMonitor
+          bounds={(refresh) => isNarrow ? [30, 55] : [55, refresh > 90 ? 90 : 60]}
           // Просадка FPS — снижаем нагрузку ступенями, без резкого «прыжка»
           onDecline={() => setQuality((q) => Math.max(0.25, q - 0.25))}
           onIncline={() => setQuality((q) => Math.min(1, q + 0.1))}
+          onFallback={() => setQuality(0.25)}
           flipflops={3}
         >
           <Rig />

@@ -12,11 +12,12 @@ export function Stack() {
   return (
     <SectionShell id="stack">
       <Reveal>
-        <div data-reading className="mb-10 flex flex-wrap items-end justify-between gap-6">
-          <h2 className="max-w-xl font-display text-[clamp(1.9rem,4.4vw,3.4rem)] font-light leading-[1.06] tracking-[-0.03em] text-ink">
-            Чем я это всё делаю
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          <h2 data-reading className="max-w-xl font-display text-[clamp(1.9rem,4.4vw,3.4rem)] font-light leading-[1.06] tracking-[-0.03em] text-ink">
+            Стэк
           </h2>
           <button
+            data-reading
             type="button"
             aria-pressed={paused}
             aria-controls="stack-languages stack-tools"

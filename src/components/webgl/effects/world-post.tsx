@@ -3,15 +3,15 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { HalfFloatType } from "three";
-import { Effect, EffectComposer, EffectPass, RenderPass, ToneMappingEffect, ToneMappingMode } from "postprocessing";
-import { pointerState } from "@/lib/store";
+import { BlendFunction, Effect, EffectComposer, EffectPass, RenderPass, ToneMappingEffect, ToneMappingMode } from "postprocessing";
+import { interactionState } from "@/scene/interaction";
 import { worldState } from "@/scene/timeline";
-import { createReadingUniforms, syncReadingUniforms } from "../shaders/reading-zones";
+import { createReadingUniforms, readingContrastFragment, syncReadingUniforms } from "../shaders/reading-zones";
 import { outputFragment } from "../shaders/output";
 import { AsciiEffectImpl } from "./ascii-effect";
 import { createGlyphAtlas } from "./glyph-atlas";
 
-/** Linear HalfFloat → signature ASCII → ACES → IGN → one sRGB output. */
+/** Linear HalfFloat → ASCII → ACES → text luminance cap → IGN → one sRGB. */
 export function WorldPost({ cell }: { cell: number }) {
   const { gl, scene, camera } = useThree();
   const pipeline = useRef<{
@@ -27,15 +27,21 @@ export function WorldPost({ cell }: { cell: number }) {
     // Creation and disposal share an effect lifecycle: StrictMode replay
     // creates fresh GPU resources instead of reusing a disposed useMemo.
     const atlas = createGlyphAtlas();
-    const ascii = new AsciiEffectImpl({ texture: atlas.texture, cell });
+    const reading = createReadingUniforms();
+    const ascii = new AsciiEffectImpl({ texture: atlas.texture, cell, reading });
     const tone = new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC });
-    const output = new Effect("DisplayDither", outputFragment);
+    const contrast = new Effect("ReadingContrast", readingContrastFragment, {
+      blendFunction: BlendFunction.SRC,
+      uniforms: new Map(Object.entries(reading)),
+    });
+    const output = new Effect("DisplayDither", outputFragment, { blendFunction: BlendFunction.SRC });
     const composer = new EffectComposer(gl, { frameBufferType: HalfFloatType, multisampling: 0 });
     composer.addPass(new RenderPass(scene, camera));
     // Separate passes make output order explicit and stable.
     composer.addPass(new EffectPass(camera, ascii));
-    composer.addPass(new EffectPass(camera, tone, output));
-    pipeline.current = { composer, ascii, reading: createReadingUniforms(), width: 0, height: 0, dpr: 0 };
+    // These effects do not sample inputBuffer: insertion order survives merging.
+    composer.addPass(new EffectPass(camera, tone, contrast, output));
+    pipeline.current = { composer, ascii, reading, width: 0, height: 0, dpr: 0 };
     return () => {
       pipeline.current = null;
       composer.dispose();
@@ -45,7 +51,7 @@ export function WorldPost({ cell }: { cell: number }) {
 
   useFrame((state, delta) => {
     const current = pipeline.current;
-    if (!current) return;
+    if (!current || document.hidden) return;
     const { size } = state;
     const dpr = gl.getPixelRatio();
     if (size.width !== current.width || size.height !== current.height || dpr !== current.dpr) {
@@ -55,11 +61,10 @@ export function WorldPost({ cell }: { cell: number }) {
       current.height = size.height;
       current.dpr = dpr;
     }
-    current.ascii.setPointer(pointerState.inside ? pointerState.x / size.width : -2, pointerState.inside ? 1 - pointerState.y / size.height : -2);
+    current.ascii.setInteractions(interactionState, performance.now() * 0.001);
     current.ascii.setStrength(worldState.ascii);
     syncReadingUniforms(current.reading);
-    current.ascii.setReadingZones(current.reading.uReading.value, current.reading.uReadingCount.value);
-    current.composer.render(delta);
+    current.composer.render(Math.min(delta, 0.06));
   }, 1);
   return null;
 }

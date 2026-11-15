@@ -27,7 +27,11 @@ const vertexShader = /* glsl */ `
     gl_PointSize = min(aSize * uPixelRatio * (34.0 / max(1.0, -mv.z)), 4.0);
     gl_Position = projectionMatrix * mv;
 
-    vTwinkle = 0.35 + 0.65 * abs(sin(uTime * 0.6 + aSeed * 12.0));
+    // Separate frequency AND phase, with a luminous floor: the field never
+    // pulses down in unison even when nearby random seeds are correlated.
+    float phase = fract(aSeed * 73.73) * 6.2831853;
+    float frequency = 0.28 + fract(aSeed * 127.91) * 0.9;
+    vTwinkle = 0.65 + 0.35 * (0.5 + 0.5 * sin(uTime * frequency + phase));
   }
 `;
 

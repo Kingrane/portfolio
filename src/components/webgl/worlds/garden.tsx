@@ -62,7 +62,7 @@ interface Flower {
 const PETAL_COUNT = 5;
 
 /** Насколько ниже камеры стоит «луг». Чем больше — тем ниже цветы на экране. */
-const GROUND_OFFSET = 3.4;
+const GROUND_OFFSET = 2.9;
 
 /**
  * Мир 3: сад.
@@ -99,7 +99,7 @@ export function Garden({ count = 150 }: { count?: number }) {
       list.push({
         x,
         z: -7 - rand() * 26,
-        height: 0.45 + rand() * 1.15,
+        height: 0.6 + rand() * 1.4,
         // Лёгкий рельеф: два синуса по X дают пологие холмы вместо линейки
         ground: Math.sin(x * 0.16) * 0.3 + Math.cos(x * 0.061) * 0.42,
         phase: rand() * Math.PI * 2,
@@ -168,8 +168,8 @@ export function Garden({ count = 150 }: { count?: number }) {
     // Материалы гасим, а не прячем группу: так появление плавное
     const f = fade.current;
     if (stemsMat.current) stemsMat.current.opacity = 0.72 * f;
-    if (petalsMat.current) petalsMat.current.opacity = 0.6 * f;
-    if (coresMat.current) coresMat.current.opacity = 0.75 * f;
+    if (petalsMat.current) petalsMat.current.opacity = 0.88 * f;
+    if (coresMat.current) coresMat.current.opacity = f;
     if (fireflies.current) {
       fireflies.current.uniforms.uTime.value = t;
       fireflies.current.uniforms.uFade.value = worldState.fireflies;
@@ -243,7 +243,7 @@ export function Garden({ count = 150 }: { count?: number }) {
 
       {/* Венчики: плоские пятиугольники, читаются как стилизованные цветы */}
       <instancedMesh ref={petals} args={[undefined, undefined, count]} frustumCulled={false}>
-        <circleGeometry args={[0.11, PETAL_COUNT]} />
+        <circleGeometry args={[0.18, PETAL_COUNT]} />
         <meshBasicMaterial
           ref={petalsMat}
           transparent
@@ -255,7 +255,7 @@ export function Garden({ count = 150 }: { count?: number }) {
 
       {/* Сердцевина */}
       <instancedMesh ref={cores} args={[undefined, undefined, count]} frustumCulled={false}>
-        <circleGeometry args={[0.035, 6]} />
+        <circleGeometry args={[0.055, 6]} />
         <meshBasicMaterial
           ref={coresMat}
           color="#ffd9a0"

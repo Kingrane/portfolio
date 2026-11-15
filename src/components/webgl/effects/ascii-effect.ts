@@ -1,20 +1,30 @@
-import { Uniform, Vector2, type Texture, type Vector4 } from "three";
-import { Effect } from "postprocessing";
+import { Uniform, Vector2, Vector4, type Texture } from "three";
+import { BlendFunction, Effect } from "postprocessing";
 import { asciiFragment } from "../shaders/ascii";
 import { createReadingUniforms } from "../shaders/reading-zones";
+import { REACTION_SAMPLES, TRAIL_SAMPLES, type interactionState } from "@/scene/interaction";
 
 /** Owns no renderer/atlas: their lifecycle belongs to WorldPost. */
 export class AsciiEffectImpl extends Effect {
-  constructor({ texture, cell = 10 }: { texture: Texture; cell?: number }) {
-    const reading = createReadingUniforms();
+  constructor({ texture, cell = 10, reading = createReadingUniforms() }: {
+    texture: Texture;
+    cell?: number;
+    reading?: ReturnType<typeof createReadingUniforms>;
+  }) {
     super("SignatureAscii", asciiFragment, {
+      blendFunction: BlendFunction.SRC,
       uniforms: new Map<string, Uniform>([
         ["uGlyphAtlas", new Uniform(texture)],
         ["uResolution", new Uniform(new Vector2(1, 1))],
         ["uCell", new Uniform(cell)],
         ["uStrength", new Uniform(0.35)],
-        ["uPointer", new Uniform(new Vector2(-2, -2))],
+        ["uTime", new Uniform(0)],
+        ["uTrail", new Uniform(Array.from({ length: TRAIL_SAMPLES }, () => new Vector4(0, 0, -1000, 0)))],
+        ["uReactions", new Uniform(Array.from({ length: REACTION_SAMPLES }, () => new Vector4()))],
+        ["uReactionTimes", new Uniform(new Vector4(-1000, -1000, -1000, -1000))],
         ["uReading", reading.uReading],
+        ["uReadingStrength", reading.uReadingStrength],
+        ["uReadingViewport", reading.uReadingViewport],
         ["uReadingCount", reading.uReadingCount],
       ]),
     });
@@ -22,10 +32,21 @@ export class AsciiEffectImpl extends Effect {
 
   setResolution(width: number, height: number): void { this.uniforms.get("uResolution")!.value.set(width, height); }
   setStrength(value: number): void { this.uniforms.get("uStrength")!.value = value; }
-  setPointer(x: number, y: number): void { this.uniforms.get("uPointer")!.value.set(x, y); }
-  setReadingZones(rects: Vector4[], count: number): void {
+  /** Fixed buffers copied in-place; no per-frame arrays or vectors are created. */
+  setInteractions(history: typeof interactionState, time: number): void {
+    const trail = this.uniforms.get("uTrail")!.value as Vector4[];
+    const reactions = this.uniforms.get("uReactions")!.value as Vector4[];
+    for (let i = 0; i < TRAIL_SAMPLES; i++) trail[i].fromArray(history.trail, i * 4);
+    for (let i = 0; i < REACTION_SAMPLES; i++) reactions[i].fromArray(history.reactions, i * 4);
+    this.uniforms.get("uReactionTimes")!.value.fromArray(history.reactionTimes);
+    this.uniforms.get("uTime")!.value = time;
+  }
+
+  setReadingZones(rects: Vector4[], count: number, strengths?: Float32Array): void {
     const target = this.uniforms.get("uReading")!.value as Vector4[];
-    for (let i = 0; i < count; i++) target[i].copy(rects[i]);
-    this.uniforms.get("uReadingCount")!.value = count;
+    const weights = this.uniforms.get("uReadingStrength")!.value as Float32Array;
+    const bounded = Math.max(0, Math.min(target.length, rects.length, count));
+    for (let i = 0; i < bounded; i++) { target[i].copy(rects[i]); weights[i] = strengths?.[i] ?? 1; }
+    this.uniforms.get("uReadingCount")!.value = bounded;
   }
 }

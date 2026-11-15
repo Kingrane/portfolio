@@ -6,6 +6,8 @@
  * движение. Здесь — обычный мутабельный объект без перерисовок React.
  */
 
+import { clearAsciiInteractions, installAsciiInteractions, recordAsciiPointer } from "@/scene/interaction";
+
 export interface PointerState {
   /** Пиксели от левого верхнего угла окна */
   x: number;
@@ -51,6 +53,8 @@ let installed = false;
 export function installInstrumentation(): () => void {
   if (installed || typeof window === "undefined") return () => {};
   installed = true;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const cleanupInteractions = installAsciiInteractions();
 
   const onPointerMove = (e: PointerEvent) => {
     const w = window.innerWidth;
@@ -60,18 +64,28 @@ export function installInstrumentation(): () => void {
     pointerState.nx = (e.clientX / w) * 2 - 1;
     pointerState.ny = -((e.clientY / h) * 2 - 1);
     pointerState.inside = true;
+    if (!reduce.matches && !document.hidden) recordAsciiPointer(e.clientX, e.clientY, performance.now() * 0.001);
   };
   const onPointerDown = (e: PointerEvent) => {
     onPointerMove(e);
     pointerState.down = true;
   };
   const onPointerUp = () => (pointerState.down = false);
-  const onLeave = () => (pointerState.inside = false);
+  const onLeave = () => {
+    pointerState.inside = false;
+    pointerState.down = false;
+  };
+  const onBlur = () => { onLeave(); clearAsciiInteractions(); };
+  const onVisibility = () => { if (document.hidden) onBlur(); };
+  const onPointerOut = (e: PointerEvent) => { if (!e.relatedTarget) onLeave(); };
 
   window.addEventListener("pointermove", onPointerMove, { passive: true });
   window.addEventListener("pointerdown", onPointerDown, { passive: true });
   window.addEventListener("pointerup", onPointerUp, { passive: true });
   window.addEventListener("pointerleave", onLeave, { passive: true });
+  window.addEventListener("blur", onBlur);
+  document.addEventListener("pointerout", onPointerOut, { passive: true });
+  document.addEventListener("visibilitychange", onVisibility);
   const onTouchMove = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
@@ -82,6 +96,7 @@ export function installInstrumentation(): () => void {
       pointerState.nx = (t.clientX / w) * 2 - 1;
       pointerState.ny = -((t.clientY / h) * 2 - 1);
       pointerState.inside = true;
+      if (!reduce.matches && !document.hidden) recordAsciiPointer(t.clientX, t.clientY, performance.now() * 0.001);
   };
   window.addEventListener("touchmove", onTouchMove, { passive: true });
 
@@ -90,7 +105,12 @@ export function installInstrumentation(): () => void {
     window.removeEventListener("pointerdown", onPointerDown);
     window.removeEventListener("pointerup", onPointerUp);
     window.removeEventListener("pointerleave", onLeave);
+    window.removeEventListener("blur", onBlur);
+    document.removeEventListener("pointerout", onPointerOut);
+    document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("touchmove", onTouchMove);
+    cleanupInteractions();
+    onLeave();
     installed = false;
   };
 }

@@ -9,11 +9,10 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
 
   return (
     <article
-      data-reading
-      className="group relative flex min-w-0 flex-col bg-void/80 p-5 sm:p-6"
+      className="group relative flex min-w-0 flex-col p-5 sm:p-6"
     >
       <header className="flex items-start justify-between gap-4">
-        <h3 className="min-w-0 break-words font-display text-[clamp(1.15rem,2vw,1.55rem)] font-normal tracking-[-0.02em] text-ink transition-colors duration-300 group-hover:text-amber motion-reduce:transition-none">
+        <h3 data-reading className="min-w-0 break-words font-display text-[clamp(1.15rem,2vw,1.55rem)] font-normal tracking-[-0.02em] text-ink transition-colors duration-300 group-hover:text-amber group-focus-within:text-amber motion-reduce:transition-none">
           <a
             href={project.href}
             target="_blank"
@@ -35,12 +34,12 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
       </div>
 
       {project.description ? (
-        <p className="mt-4 text-[13px] leading-relaxed text-ink-dim">{project.description}</p>
+        <p data-reading className="mt-4 text-[13px] leading-relaxed text-ink-dim">{project.description}</p>
       ) : null}
 
       <ul className="mt-auto flex flex-wrap gap-x-3 gap-y-2 pt-5">
         {project.tech.map((tech) => (
-          <li key={tech} className="max-w-full break-words font-mono text-[11px] leading-relaxed tracking-[0.04em] text-ink-dim">
+          <li data-reading key={tech} className="max-w-full break-words font-mono text-[11px] leading-relaxed tracking-[0.04em] text-ink-dim">
             {tech}
           </li>
         ))}
@@ -49,6 +48,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
       {project.repo ? (
         <footer className="mt-4 pt-3">
           <a
+            data-reading
             href={project.repo}
             target="_blank"
             rel="noopener noreferrer"
