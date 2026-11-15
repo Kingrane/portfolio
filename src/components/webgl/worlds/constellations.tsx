@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { pointerState } from "@/lib/store";
+import { worldState } from "@/scene/timeline";
 
 const nodeVertex = /* glsl */ `
   attribute vec3 aColor;
@@ -21,14 +22,15 @@ const nodeVertex = /* glsl */ `
 
 const nodeFragment = /* glsl */ `
   varying vec3 vColor;
+  uniform float uOpacity;
   void main() {
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
-    float core = smoothstep(0.16, 0.0, d);
-    float halo = smoothstep(0.5, 0.1, d) * 0.35;
+    float core = 1.0 - smoothstep(0.0, 0.16, d);
+    float halo = (1.0 - smoothstep(0.1, 0.5, d)) * 0.35;
     float a = core + halo;
     if (a < 0.01) discard;
-    gl_FragColor = vec4(vColor, a);
+    gl_FragColor = vec4(vColor, a * uOpacity);
   }
 `;
 
@@ -50,6 +52,8 @@ export function Constellations({ count }: { count: number }) {
   const group = useRef<THREE.Group>(null);
   const pointsRef = useRef<THREE.Points>(null);
   const linesRef = useRef<THREE.LineSegments>(null);
+  const lineMaterial = useRef<THREE.LineBasicMaterial>(null);
+  const nodeMaterial = useRef<THREE.ShaderMaterial>(null);
   const dpr = useThree((s) => s.viewport.dpr);
 
   const graph = useMemo<Graph>(() => {
@@ -108,7 +112,7 @@ export function Constellations({ count }: { count: number }) {
     return g;
   }, [graph]);
 
-  const uniforms = useMemo(() => ({ uPixelRatio: { value: Math.min(2, dpr) } }), [dpr]);
+  const uniforms = useMemo(() => ({ uPixelRatio: { value: Math.min(2, dpr) }, uOpacity: { value: 0 } }), [dpr]);
   useEffect(() => () => {
     nodeGeometry.dispose();
     lineGeometry.dispose();
@@ -128,6 +132,9 @@ export function Constellations({ count }: { count: number }) {
     );
 
     if (!pointsRef.current || !linesRef.current || !group.current) return;
+    const visibility = worldState.stars * (1 - worldState.hole) * (1 - worldState.rain);
+    if (lineMaterial.current) lineMaterial.current.opacity = visibility * 0.3;
+    if (nodeMaterial.current) nodeMaterial.current.uniforms.uOpacity.value = visibility;
     const posAttr = pointsRef.current.geometry.getAttribute("position") as THREE.BufferAttribute;
     const arr = posAttr.array as Float32Array;
     const displaced = arr;
@@ -175,15 +182,10 @@ export function Constellations({ count }: { count: number }) {
       lp[i * 6 + 5] = displaced[b * 3 + 2];
 
       // Линия ярче у курсора
-      const mid = [
-        (displaced[a * 3] + displaced[b * 3]) / 2,
-        (displaced[a * 3 + 1] + displaced[b * 3 + 1]) / 2,
-        (displaced[a * 3 + 2] + displaced[b * 3 + 2]) / 2,
-      ];
       const d = Math.hypot(
-        mid[0] - pointerWorld.current.x,
-        mid[1] - pointerWorld.current.y,
-        mid[2] - pointerWorld.current.z,
+        (displaced[a * 3] + displaced[b * 3]) / 2 - pointerWorld.current.x,
+        (displaced[a * 3 + 1] + displaced[b * 3 + 1]) / 2 - pointerWorld.current.y,
+        (displaced[a * 3 + 2] + displaced[b * 3 + 2]) / 2 - pointerWorld.current.z,
       );
       const glow = Math.min(1, 1.6 / (d + 1.2));
       lc[i * 6] = 0.30 + glow * 0.5;
@@ -204,9 +206,10 @@ export function Constellations({ count }: { count: number }) {
   });
 
   return (
-    <group ref={group} position={[0, -30, -10]}>
+    <group ref={group} position={[0, -22, -10]}>
       <lineSegments ref={linesRef} geometry={lineGeometry} frustumCulled={false}>
         <lineBasicMaterial
+          ref={lineMaterial}
           vertexColors
           transparent
           opacity={0.42}
@@ -217,6 +220,7 @@ export function Constellations({ count }: { count: number }) {
 
       <points ref={pointsRef} geometry={nodeGeometry} frustumCulled={false}>
         <shaderMaterial
+          ref={nodeMaterial}
           uniforms={uniforms}
           vertexShader={nodeVertex}
           fragmentShader={nodeFragment}

@@ -34,12 +34,12 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://kingrane.github.io/portfolio/"),
   title: "Kingrane — full-stack vibe developer",
   description:
-    "Портфолио Kingrane: веб, 3D, AI. Терминал космической станции, который встретил сад.",
+    "Full-stack vibe developer. Балуюсь с вебом, 3D, AI.",
   applicationName: "Kingrane",
   authors: [{ name: "Kingrane" }],
   openGraph: {
     title: "Kingrane — full-stack vibe developer",
-    description: "Веб, 3D, AI. 17 проектов, одна чёрная дыра и немного ирисов.",
+    description: "Full-stack vibe developer. Балуюсь с вебом, 3D, AI.",
     type: "website",
     locale: "ru_RU",
     images: [
@@ -47,14 +47,14 @@ export const metadata: Metadata = {
         url: asset("/og.png"),
         width: 1200,
         height: 630,
-        alt: "Чёрная дыра с аккреционным диском за заголовком Kingrane",
+        alt: "Kingrane",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Kingrane — full-stack vibe developer",
-    description: "Веб, 3D, AI. 17 проектов, одна чёрная дыра и немного ирисов.",
+    description: "Full-stack vibe developer. Балуюсь с вебом, 3D, AI.",
     images: [asset("/og.png")],
   },
   icons: {
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07070a",
+  themeColor: "#050507",
   colorScheme: "dark",
 };
 

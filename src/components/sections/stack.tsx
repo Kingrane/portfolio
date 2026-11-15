@@ -1,92 +1,35 @@
+"use client";
+
+import { useState } from "react";
 import { SectionShell } from "@/components/ui/section-shell";
 import { Marquee } from "@/components/ui/marquee";
-import { Reveal, SplitText } from "@/components/ui/reveal";
+import { Reveal } from "@/components/ui/reveal";
 import { languages, technologies } from "@/content/stack";
 
-/**
- * Секция стека: тикеры в обе стороны + два списка с индексами.
- * В Фазе 2 под ней появится созвездие из узлов-технологий.
- */
 export function Stack() {
-  const total = languages.length + technologies.length;
+  const [paused, setPaused] = useState(false);
 
   return (
-    <SectionShell
-      id="stack"
-      index="01"
-      label={`stack · ${total}`}
-      meta="ticker · hover to freeze"
-      bleed
-    >
-      <div className="border-b border-line">
-        <Marquee items={languages} />
-        <div className="border-t border-line">
-          <Marquee items={technologies} reverse />
-        </div>
-      </div>
-
-      <div className="px-[var(--gutter)] py-16 sm:py-24">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20">
-          <div>
-            <h2 className="max-w-lg font-display text-[clamp(1.9rem,4.4vw,3.4rem)] font-light leading-[0.98] tracking-[-0.03em]">
-              <SplitText text="Чем я это всё" />
-              <br />
-              <span className="text-ink-faint">
-                <SplitText text="делаю" delay={0.12} />
-              </span>
-            </h2>
-            <Reveal delay={0.15}>
-              <p className="mt-6 max-w-md text-sm leading-relaxed text-ink-dim">
-                Языки, в которых чувствую себя дома, и инструменты, которыми собираю.
-                Половина проектов родилась из «а что если», а не из брифа.
-              </p>
-            </Reveal>
-          </div>
-
-          <div className="grid gap-8 sm:grid-cols-2">
-            <StackList title="languages" items={languages.map((l) => l.name)} accent="iris" />
-            <StackList
-              title="tools & ecosystem"
-              items={technologies.map((t) => t.name)}
-              accent="amber"
-            />
-          </div>
-        </div>
-      </div>
-    </SectionShell>
-  );
-}
-
-function StackList({
-  title,
-  items,
-  accent,
-}: {
-  title: string;
-  items: string[];
-  accent: "iris" | "amber";
-}) {
-  return (
-    <div>
-      <p className="hud mb-3 flex items-center gap-2 border-b border-line pb-2">
-        <span
-          className={accent === "iris" ? "h-1 w-1 bg-iris" : "h-1 w-1 bg-amber"}
-          aria-hidden
-        />
-        {title}
-      </p>
-      <ul className="space-y-1.5">
-        {items.map((item, i) => (
-          <li
-            key={item}
-            className="group flex items-baseline gap-3 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-dim transition-colors duration-300 hover:text-ink"
+    <SectionShell id="stack">
+      <Reveal>
+        <div data-reading className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          <h2 className="max-w-xl font-display text-[clamp(1.9rem,4.4vw,3.4rem)] font-light leading-[1.06] tracking-[-0.03em] text-ink">
+            Чем я это всё делаю
+          </h2>
+          <button
+            type="button"
+            aria-pressed={paused}
+            aria-controls="stack-languages stack-tools"
+            onClick={() => setPaused((value) => !value)}
+            className="inline-flex min-h-11 items-center border border-line-strong px-4 font-mono text-[11px] tracking-[0.06em] text-ink-dim transition-colors duration-300 hover:border-amber/50 hover:text-amber motion-reduce:hidden"
           >
-            <span className="text-[9px] text-ink-faint">{String(i + 1).padStart(2, "0")}</span>
-            <span className="flex-1">{item}</span>
-            <span className="h-px w-3 bg-line-strong opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          </li>
-        ))}
-      </ul>
-    </div>
+            {paused ? "Продолжить" : "Пауза"}
+          </button>
+        </div>
+
+        <Marquee id="stack-languages" items={languages} paused={paused} />
+        <Marquee id="stack-tools" items={technologies} paused={paused} reverse className="mt-3" />
+      </Reveal>
+    </SectionShell>
   );
 }

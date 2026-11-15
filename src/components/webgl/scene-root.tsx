@@ -56,16 +56,11 @@ export function SceneRoot() {
 
   return (
     <>
-      {/* Статичный постер: он же fallback без WebGL. Стоит ноль байт. */}
+      {/* Neutral loading/fallback surface. Phase B supplies the scene poster. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(70% 50% at 62% 18%, rgba(124,92,255,0.16), transparent 60%)," +
-            "radial-gradient(50% 40% at 20% 60%, rgba(255,180,84,0.06), transparent 70%)," +
-            "#07070a",
-        }}
+        style={{ background: "#050507" }}
       />
       {support === "yes" && !reduce ? <Scene /> : null}
     </>

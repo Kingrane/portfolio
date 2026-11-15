@@ -1,0 +1,19 @@
+.letter {
+  display: inline-block;
+  animation: letter-entrance 800ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes letter-entrance {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letter {
+    animation: none;
+  }
+}

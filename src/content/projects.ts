@@ -26,16 +26,14 @@ export interface Project {
 export const projects: Project[] = [
   {
     title: "Bobik-2B",
-    description:
-      "Русская чат-модель на базе Qwen3.5-2B, дообученная своими руками через Unsloth. LoRA r=32, 250 шагов, собственные датасеты и identity-набор. Отдаётся в GGUF под ollama и llama.cpp.",
+    description: "", // Draft retained in COPY_TO_APPROVE.md until approved.
     tech: ["Python", "Qwen3.5-2B", "Unsloth", "LoRA", "GGUF"],
     href: "https://huggingface.co/Kingrane/Bobik-2B",
     group: "vibe",
   },
   {
     title: "holoterm",
-    description:
-      "3D-графика прямо в терминале. Свой software-растеризатор с Z-буфером, освещением и TrueColor ANSI: 13 моделей, 9 палитр, 4 режима рендера и мышиное вращение. Ноль зависимостей.",
+    description: "", // Draft retained in COPY_TO_APPROVE.md until approved.
     tech: ["Node.js", "JavaScript", "ANSI TrueColor", "Canvas API"],
     href: "https://www.npmjs.com/package/holoterm",
     repo: "https://github.com/Kingrane/holoterm",

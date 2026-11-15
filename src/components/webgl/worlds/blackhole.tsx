@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { blackholeFragment, blackholeVertex } from "../shaders/blackhole";
 import { pointerState } from "@/lib/store";
-import { singularityValue } from "@/lib/singularity";
-
-const DISTANCE = 8;
+import { worldState } from "@/scene/timeline";
 
 /**
  * Мир 1: чёрная дыра.
@@ -18,16 +16,6 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
   const mat = useRef<THREE.ShaderMaterial>(null);
   const smoothPointer = useRef(new THREE.Vector2(0, 0));
   const pulse = useRef(0);
-  const size = useThree((s) => s.size);
-  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
-
-  // Размер плоскости, чтобы она перекрывала кадр с запасом
-  const scale = useMemo(() => {
-    const h = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * DISTANCE;
-    const w = h * (size.width / size.height);
-    return [w * 1.15, h * 1.15] as const;
-  }, [camera.fov, size.width, size.height]);
-
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
@@ -37,7 +25,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
       uIntro: { value: 0 },
       uQuality: { value: 1 },
       uOpacity: { value: 1 },
-      uCollapse: { value: 0 },
+      uDive: { value: 0 },
       // Композиция зависит от пропорций экрана: на широком кадре дыра стоит
       // справа от заголовка, на узком — уходит вверх и уменьшается, чтобы не
       // спорить с текстом, который на мобильном занимает весь центр.
@@ -72,10 +60,10 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     m.uniforms.uPointer.value.copy(smoothPointer.current);
     m.uniforms.uAspect.value = state.size.width / Math.max(1, state.size.height);
     m.uniforms.uQuality.value = quality;
-    m.uniforms.uIntro.value = Math.min(1, m.uniforms.uIntro.value + dt * 0.9);
-    // Пасхалка: значение считаем от performance.now(), чтобы не зависеть от
-    // часов сцены (они сбрасываются при перемонтировании)
-    m.uniforms.uCollapse.value = singularityValue(performance.now());
+    m.uniforms.uIntro.value = Math.min(1, m.uniforms.uIntro.value + dt * 2);
+    m.uniforms.uOpacity.value = worldState.hole;
+    m.uniforms.uDive.value = worldState.dive;
+    m.uniforms.uCenter.value.set(narrow ? 0 : (state.size.width / state.size.height) * 0.19, narrow ? 0.32 : 0.06);
 
     if (pulse.current > 0) {
       pulse.current += dt * 0.7;
@@ -85,14 +73,13 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
   });
 
   return (
-    <mesh position={[0, 0, -DISTANCE]} scale={[scale[0], scale[1], 1]} frustumCulled={false}>
-      <planeGeometry args={[1, 1]} />
+    <mesh renderOrder={-100} frustumCulled={false}>
+      <planeGeometry args={[2, 2]} />
       <shaderMaterial
         ref={mat}
         uniforms={uniforms}
         vertexShader={blackholeVertex}
         fragmentShader={blackholeFragment}
-        transparent
         depthWrite={false}
         depthTest={false}
       />

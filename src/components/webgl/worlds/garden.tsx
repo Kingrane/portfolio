@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { pointerState, viewState } from "@/lib/store";
+import { pointerState } from "@/lib/store";
+import { worldState } from "@/scene/timeline";
+import { readingInfluence } from "@/scene/reading-zones";
 import { hashString, mulberry32 } from "@/lib/ascii";
 
 /** Светлячки: точки с дрейфом в вершинном шейдере, без JS в кадре. */
@@ -38,7 +40,7 @@ const fireflyFragment = /* glsl */ `
   void main() {
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
-    float a = smoothstep(0.5, 0.0, d);
+    float a = 1.0 - smoothstep(0.0, 0.5, d);
     a = pow(a, 1.6) * vGlow;
     if (a < 0.01) discard;
     gl_FragColor = vec4(uColor, a);
@@ -62,9 +64,6 @@ const PETAL_COUNT = 5;
 /** Насколько ниже камеры стоит «луг». Чем больше — тем ниже цветы на экране. */
 const GROUND_OFFSET = 3.4;
 
-/** Появление: прогресс скролла, на котором сад проступает. */
-const FADE_IN: [number, number] = [0.66, 0.79];
-
 /**
  * Мир 3: сад.
  *
@@ -86,6 +85,7 @@ export function Garden({ count = 150 }: { count?: number }) {
   const fireflies = useRef<THREE.ShaderMaterial>(null);
   const group = useRef<THREE.Group>(null);
   const fade = useRef(0);
+  const projected = useRef(new THREE.Vector3());
   const dpr = useThree((s) => s.viewport.dpr);
 
   const flowers = useMemo<Flower[]>(() => {
@@ -155,18 +155,14 @@ export function Garden({ count = 150 }: { count?: number }) {
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
-    const p = viewState.progress;
-
-    // Проявление сада: до своей зоны он прозрачный, дальше — постоянный
-    const raw = Math.min(1, Math.max(0, (p - FADE_IN[0]) / (FADE_IN[1] - FADE_IN[0])));
-    const target = raw * raw * (3 - 2 * raw);
-    fade.current += (target - fade.current) * Math.min(1, delta * 3);
+    fade.current += (worldState.flowers - fade.current) * Math.min(1, delta * 5);
 
     if (group.current) {
       // Держим луг на постоянном отступе ниже камеры — он всегда у нижней кромки
       const want = state.camera.position.y - GROUND_OFFSET;
       group.current.position.y += (want - group.current.position.y) * Math.min(1, delta * 5);
       group.current.rotation.y = pointerState.nx * 0.05;
+      group.current.updateMatrixWorld();
     }
 
     // Материалы гасим, а не прячем группу: так появление плавное
@@ -176,7 +172,7 @@ export function Garden({ count = 150 }: { count?: number }) {
     if (coresMat.current) coresMat.current.opacity = 0.75 * f;
     if (fireflies.current) {
       fireflies.current.uniforms.uTime.value = t;
-      fireflies.current.uniforms.uFade.value = f;
+      fireflies.current.uniforms.uFade.value = worldState.fireflies;
     }
 
     // Пока сад прозрачный — не тратим кадры на матрицы
@@ -188,21 +184,27 @@ export function Garden({ count = 150 }: { count?: number }) {
       const gust =
         Math.sin(t * 0.9 + flower.phase) * 0.16 + Math.sin(t * 0.31 + flower.phase * 2.0) * 0.09;
       const wind = gust + pointerState.nx * 0.08;
-      const h = flower.height;
+      const h = flower.height * worldState.growth;
       const leanX = Math.sin(wind) * h;
       const leanY = Math.cos(wind) * h;
+      projected.current.set(flower.x + leanX, flower.ground + leanY, flower.z);
+      if (group.current) projected.current.applyMatrix4(group.current.matrixWorld);
+      projected.current.project(state.camera);
+      const protection = readingInfluence(projected.current.x * 0.5 + 0.5, projected.current.y * 0.5 + 0.5);
+      const visibleScale = worldState.growth * (1 - protection * 0.88);
+      const x = flower.x + protection * (projected.current.x < 0 ? -1 : 1) * 1.2;
 
       if (stems.current) {
-        dummy.position.set(flower.x + leanX * 0.5, flower.ground + leanY * 0.5, flower.z);
+        dummy.position.set(x + leanX * 0.5, flower.ground + leanY * 0.5, flower.z);
         dummy.rotation.set(0, 0, -wind);
-        dummy.scale.set(flower.scale, h, flower.scale);
+        dummy.scale.set(flower.scale * visibleScale, h, flower.scale * visibleScale);
         dummy.updateMatrix();
         stems.current.setMatrixAt(i, dummy.matrix);
       }
 
-      const headScale = flower.scale * 1.05;
+      const headScale = flower.scale * 1.05 * visibleScale;
       if (petals.current) {
-        dummy.position.set(flower.x + leanX, flower.ground + leanY, flower.z);
+        dummy.position.set(x + leanX, flower.ground + leanY, flower.z);
         // Венчик развёрнут к камере, наклоняется от ветра, а phase даёт
         // каждому цветку свой поворот — иначе поле выглядит штампованным
         dummy.rotation.set(-Math.PI / 2 + 0.35, wind * 0.5, wind * 0.35 + flower.phase);
@@ -212,7 +214,7 @@ export function Garden({ count = 150 }: { count?: number }) {
       }
 
       if (cores.current) {
-        dummy.position.set(flower.x + leanX, flower.ground + leanY + 0.01, flower.z);
+        dummy.position.set(x + leanX, flower.ground + leanY + 0.01, flower.z);
         dummy.rotation.set(-Math.PI / 2, 0, 0);
         dummy.scale.setScalar(headScale * 0.34);
         dummy.updateMatrix();

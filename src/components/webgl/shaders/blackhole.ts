@@ -20,7 +20,8 @@ export const blackholeVertex = /* glsl */ `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Screen-space coverage is independent of camera translation/rotation.
+    gl_Position = vec4(position.xy, 0.999, 1.0);
   }
 `;
 
@@ -35,7 +36,7 @@ export const blackholeFragment = /* glsl */ `
   uniform float uIntro;    // 0..1 — появление сцены
   uniform float uQuality;  // 1.0 = десктоп, 0.0 = слабое устройство
   uniform float uOpacity;
-  uniform float uCollapse; // 0..1 — пасхалка «сингулярность»
+  uniform float uDive;     // scroll-driven dive; phase B replaces the optical model
   uniform float uZoom;     // >1 — дыра меньше (нужно на узких экранах)
   uniform vec2 uCenter;    // смещение дыры в кадре (не по центру — по композиции)
 
@@ -49,7 +50,7 @@ export const blackholeFragment = /* glsl */ `
     float h = hash21(id);
     // одиночная яркая точка в ячейке
     float bright = step(threshold, h);
-    float core = smoothstep(0.16, 0.0, length(f));
+    float core = 1.0 - smoothstep(0.0, 0.16, length(f));
     float twinkle = 0.45 + 0.55 * sin(uTime * 1.7 + h * 52.0);
     return bright * core * twinkle;
   }
@@ -63,9 +64,7 @@ export const blackholeFragment = /* glsl */ `
     // uZoom отдаляет точку сэмплирования — объект кажется меньше
     vec2 p = (sp - uCenter - parallax) * uZoom;
 
-    // Пасхалка: пространство стягивается к дыре, потом отпускает
-    float collapse = uCollapse;
-    p *= 1.0 - collapse * 0.42;
+    p *= 1.0 - uDive * 0.65;
 
     float intro = smoothstep(0.0, 1.0, uIntro);
 
@@ -76,7 +75,7 @@ export const blackholeFragment = /* glsl */ `
     // --- 1. Линзирование ------------------------------------------------
     // Искривление сильнее у центра (1/(r+0.1)), звёзды рядом с дырой буквально
     // «затягивает» по окружности.
-    float bend = (0.042 / (r + 0.09)) * (1.0 + collapse * 1.7);
+    float bend = (0.042 / (r + 0.09));
     vec2 warped = p - dir * bend;
     // Тангенциальное закручивание: то, что делает кольцо Эйнштейна
     float swirlAngle = bend * 1.8;
@@ -91,13 +90,9 @@ export const blackholeFragment = /* glsl */ `
     }
 
     // Цвет далёких звёзд: холодный ирис с редкими янтарными вкраплениями
-    vec3 starTint = mix(vec3(0.72, 0.66, 1.0), vec3(1.0, 0.82, 0.60), hash21(floor(warped * 20.0)));
-
-    // Пыль: очень слабый fbm, чтобы пустота не была стерильной
-    float dust = fbm(p * 2.4 + vec2(uTime * 0.01, 0.0), uQuality > 0.4 ? 4 : 2);
-    vec3 col = vec3(0.010, 0.010, 0.018);
-    col += vec3(0.035, 0.032, 0.075) * dust * 0.6;
-    col += starTint * stars * 1.15;
+    vec3 starTint = mix(vec3(0.86), vec3(1.0, 0.65, 0.26), hash21(floor(warped * 20.0)));
+    // No positive low-frequency noise or emissive grey floor in empty space.
+    vec3 col = starTint * stars * 1.15;
 
     // --- 3. Аккреционный диск ------------------------------------------
     const float R = 0.168;          // радиус горизонта событий
@@ -111,57 +106,51 @@ export const blackholeFragment = /* glsl */ `
 
     // Кольцо: от горизонта событий наружу, с мягкими краями
     float inner = smoothstep(R * 0.98, R * 1.34, dr);
-    float outer = smoothstep(0.54, 0.26, dr);
+    float outer = 1.0 - smoothstep(0.26, 0.54, dr);
     float band = inner * outer;
 
     // Завихрения: шум по углу и радиусу, медленно вращается вокруг дыры
-    float streak = fbm(vec2(ang * 1.5 + dr * 2.6, dr * 9.0 - uTime * 0.45), uQuality > 0.4 ? 5 : 3);
+    // Periodic angular coordinates remove atan's branch-cut seam.
+    vec2 flow = vec2(cos(ang - uTime * 0.1), sin(ang - uTime * 0.1));
+    float streak = fbm(flow * (3.0 + dr * 9.0), uQuality > 0.4 ? 5 : 3);
     streak = pow(clamp(streak, 0.0, 1.0), 1.35);
     float disk = band * (0.22 + 1.5 * streak);
 
     // Раскалённый внутренний край у самого горизонта
     float rim = exp(-abs(dr - R * 1.14) * 24.0) * 0.8;
 
-    vec3 hot = vec3(1.00, 0.80, 0.50);
-    vec3 cool = vec3(0.52, 0.38, 1.0);
+    vec3 hot = vec3(2.4, 1.45, 0.62);
+    vec3 cool = vec3(0.85, 0.21, 0.035);
     vec3 diskCol = mix(hot, cool, smoothstep(R, 0.58, dr));
     diskCol += hot * rim;
 
     // Диск виден только снаружи тени, с мягким краем
     float shadowMask = smoothstep(R * 0.95, R * 1.10, dr);
-    col += diskCol * disk * shadowMask * (0.95 + collapse * 1.2);
+    col += diskCol * disk * shadowMask;
 
     // --- 4. Тень, фотонное кольцо, волна -------------------------------
     // Тень — просто гасим всё внутри радиуса
-    float shadow = smoothstep(R * 1.06, R * 0.80, r);
+    float shadow = 1.0 - smoothstep(R * 0.80, R * 1.06, r);
     col *= (1.0 - shadow * 0.99);
 
     // Фотонное кольцо: тонкая яркая окружность на границе
     float ring = exp(-abs(r - R * 1.03) * 130.0);
-    col += vec3(0.80, 0.76, 1.0) * ring * (0.75 + collapse * 2.1);
-
-    // Вспышка сингулярности: короткое свечение вокруг горизонта
-    col += vec3(0.62, 0.54, 1.0) * collapse * collapse * 0.16 * smoothstep(0.9, 0.0, r);
-    // и приток звёзд к центру — ощущение всасывания
-    col += starTint * stars * collapse * 0.9;
+    col += vec3(1.8, 1.3, 0.7) * ring * 0.75;
 
     // Ударная волна от клика: расходящееся кольцо с затуханием
     if (uPulse > 0.001) {
       float waveR = R + uPulse * 1.1;
       float wave = exp(-abs(r - waveR) * 70.0) * (1.0 - uPulse);
-      col += vec3(0.55, 0.48, 1.0) * wave * 1.1;
+      col += hot * wave * 0.5;
       // лёгкое возмущение самого диска
       col += diskCol * disk * wave * 0.35;
     }
 
     // --- 5. Пост ---------------------------------------------------------
     // Виньетка по экранным координатам: края тонут в бездне
-    float vig = smoothstep(1.05, 0.15, length(sp * vec2(0.82, 1.0)));
+    float vig = 1.0 - smoothstep(0.15, 1.05, length(sp * vec2(0.82, 1.0)));
     col *= 0.30 + 0.70 * vig;
 
-    // Тонкая коррекция: чуть больше контраста в тенях
-    col = pow(max(col, 0.0), vec3(0.95));
-
-    gl_FragColor = vec4(col * intro, uOpacity * intro);
+    gl_FragColor = vec4(max(col, 0.0) * intro * uOpacity, 1.0);
   }
 `;

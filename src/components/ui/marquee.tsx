@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 export interface MarqueeItem {
@@ -8,66 +7,67 @@ export interface MarqueeItem {
   src?: string;
 }
 
-/**
- * Бегущая строка в стиле «тикер станции». Лента дублируется дважды и едет
- * ровно на 50% — стыка не видно. На ховере замирает, чтобы можно было прочитать.
- */
+/** The repeated row is visual only; reduced motion shows one wrapping list. */
 export function Marquee({
+  id,
   items,
   reverse = false,
+  paused = false,
   className,
   itemClassName,
 }: {
+  id?: string;
   items: MarqueeItem[];
   reverse?: boolean;
+  paused?: boolean;
   className?: string;
   itemClassName?: string;
 }) {
-  const [paused, setPaused] = useState(false);
-  const row = [...items, ...items];
-
   return (
-    <div
-      className={cn("group relative overflow-hidden", className)}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      // Клавиатурный фокус внутри ленты тоже ставит её на паузу
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
-    >
+    <div id={id} data-reading data-marquee className={cn("group relative overflow-hidden", className)}>
       <div
+        data-marquee-track
         className={cn(
-          "flex w-max",
+          "flex w-max group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused] motion-reduce:w-full motion-reduce:animate-none",
           reverse ? "animate-[marquee-reverse_44s_linear_infinite]" : "animate-[marquee_38s_linear_infinite]",
         )}
-        style={{ animationPlayState: paused ? "paused" : "running" }}
+        style={paused ? { animationPlayState: "paused" } : undefined}
       >
-        {row.map((item, i) => (
-          <div
-            key={`${item.name}-${i}`}
+        {[false, true].map((duplicate) => (
+          <ul
+            key={String(duplicate)}
+            aria-hidden={duplicate || undefined}
             className={cn(
-              "flex items-center gap-3 border-r border-line px-6 py-3 text-ink-faint transition-colors duration-300 hover:text-ink",
-              itemClassName,
+              "flex shrink-0 items-center motion-reduce:w-full motion-reduce:flex-wrap",
+              duplicate && "motion-reduce:hidden",
             )}
           >
-            {item.src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={item.src}
-                alt=""
-                width={18}
-                height={18}
-                loading="lazy"
-                decoding="async"
-                className="h-[18px] w-[18px] opacity-60 invert-0"
-              />
-            ) : (
-              <span className="h-1 w-1 rotate-45 bg-iris/60" />
-            )}
-            <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.16em]">
-              {item.name}
-            </span>
-          </div>
+            {items.map((item) => (
+              <li
+                key={item.name}
+                className={cn(
+                  "flex items-center gap-4 px-6 py-5 text-ink-dim transition-colors duration-300 hover:text-amber motion-reduce:px-3 motion-reduce:py-3 motion-reduce:transition-none sm:px-8 sm:py-6",
+                  itemClassName,
+                )}
+              >
+                {item.src ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.src}
+                    alt=""
+                    width={28}
+                    height={28}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-7 w-7 shrink-0"
+                  />
+                ) : null}
+                <span className="whitespace-nowrap font-display text-[clamp(1.15rem,2.2vw,1.8rem)] font-light tracking-[-0.02em]">
+                  {item.name}
+                </span>
+              </li>
+            ))}
+          </ul>
         ))}
       </div>
     </div>

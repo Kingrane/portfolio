@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { pointerState, viewState } from "@/lib/store";
+import { worldState } from "@/scene/timeline";
 import { hashString, mulberry32 } from "@/lib/ascii";
 
 const STAR_COUNT = 1400;
@@ -33,16 +33,17 @@ const vertexShader = /* glsl */ `
 
 const fragmentShader = /* glsl */ `
   uniform vec3 uColor;
+  uniform float uOpacity;
   varying float vTwinkle;
 
   void main() {
     // Круглая точка с мягким краем вместо квадрата
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
-    float a = smoothstep(0.5, 0.05, d);
+    float a = 1.0 - smoothstep(0.05, 0.5, d);
     a *= a;
     if (a < 0.01) discard;
-    gl_FragColor = vec4(uColor, a * vTwinkle);
+    gl_FragColor = vec4(uColor, a * vTwinkle * uOpacity);
   }
 `;
 
@@ -83,7 +84,8 @@ export function Starfield({ count = STAR_COUNT }: { count?: number }) {
     () => ({
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(2, dpr) },
-      uColor: { value: new THREE.Color("#cfd3ff") },
+      uColor: { value: new THREE.Color("#ededf2") },
+      uOpacity: { value: 0.24 },
     }),
     [dpr],
   );
@@ -93,13 +95,7 @@ export function Starfield({ count = STAR_COUNT }: { count?: number }) {
   useFrame((state) => {
     if (!mat.current) return;
     mat.current.uniforms.uTime.value = state.clock.elapsedTime;
-    // Чуть ярче в начале страницы, тише в «саду»
-    mat.current.uniforms.uColor.value.setRGB(
-      0.72 - viewState.progress * 0.18,
-      0.68 - viewState.progress * 0.2,
-      1.0 - viewState.progress * 0.15,
-    );
-    void pointerState;
+    mat.current.uniforms.uOpacity.value = worldState.stars;
   });
 
   return (

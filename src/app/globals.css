@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 /* ============================================================
-   ДИЗАЙН-СИСТЕМА · "терминал космической станции встречает сад"
+   ДИЗАЙН-СИСТЕМА · непрерывное падение от дыры к саду
    Всё, что меняет внешний вид сайта, живёт здесь.
    Меняешь акцент — меняешь одну переменную ниже.
    ============================================================ */
 
 @theme inline {
   /* ---поверхности: от бездны к самым приподнятым слоям--- */
-  --color-void: #07070a;
+  --color-void: #050507;
   --color-surface: #0a0a10;
   --color-raised: #0e0e16;
   --color-overlay: #14141d;
@@ -18,17 +18,16 @@
   --color-line-strong: rgba(255, 255, 255, 0.14);
 
   /* ---текст--- */
-  --color-ink: #eceef6;
-  --color-ink-dim: #9394a7;
-  --color-ink-faint: #9293a8;
+  --color-ink: #ededf2;
+  --color-ink-dim: #9a9aa8;
+  --color-ink-faint: #9a9aa8;
 
   /* ---акценты: ирис (холодный) + янтарь (тёплый)--- */
-  --color-iris: #7c5cff;
+  --color-iris: #6d5cff;
   --color-iris-light: #a891ff;
   --color-iris-dim: rgba(124, 92, 255, 0.12);
-  --color-amber: #ffb454;
+  --color-amber: #ffb347;
   --color-amber-dim: rgba(255, 180, 84, 0.12);
-  --color-moss: #7ae0b0;
 
   /* ---типографика--- */
   --font-display: var(--font-unbounded), ui-sans-serif, system-ui, sans-serif;
@@ -56,9 +55,7 @@
   --z-webgl: 0;
   --z-content: 10;
   --z-header: 40;
-  --z-hud: 50;
   --z-cursor: 70;
-  --z-preloader: 90;
   --container-max: 1320px;
   --gutter: clamp(1.25rem, 4vw, 3.5rem);
 }
@@ -82,7 +79,7 @@
     overflow-x: clip;
   }
 
-  /* Пока грузится прелоадер — не даём скроллить */
+  /* Native modal menu must lock scrolling even without the Lenis driver. */
   body[data-locked="true"] {
     overflow: hidden;
   }
@@ -135,9 +132,9 @@
 /* Моно-лейбл: капс + разрядка. Базовая единица «HUD»-языка. */
 .hud {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-ink-faint);
 }
@@ -146,7 +143,7 @@
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.5;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--color-ink-dim);
 }
 

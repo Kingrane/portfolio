@@ -13,10 +13,10 @@ export function Cursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const enabled = useMediaQuery("(pointer: fine)");
+  const reduce = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [variant, setVariant] = useState<"idle" | "link" | "view">("idle");
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!enabled || reduce) return;
 
     // Прячем системный курсор только когда наш действительно работает
@@ -54,9 +54,9 @@ export function Cursor() {
       window.removeEventListener("pointerover", onOver);
       delete document.documentElement.dataset.cursor;
     };
-  }, [enabled]);
+  }, [enabled, reduce]);
 
-  if (!enabled) return null;
+  if (!enabled || reduce) return null;
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[var(--z-cursor)]">
@@ -73,7 +73,7 @@ export function Cursor() {
         style={{
           width: variant === "idle" ? 26 : variant === "link" ? 46 : 64,
           height: variant === "idle" ? 26 : variant === "link" ? 46 : 64,
-          borderColor: variant === "idle" ? "rgba(124,92,255,0.45)" : "rgba(255,180,84,0.85)",
+          borderColor: variant === "idle" ? "rgba(109,92,255,0.45)" : "rgba(255,179,71,0.85)",
           opacity: pointerState.inside ? 1 : 0,
         }}
       />

@@ -46,6 +46,8 @@ export function createGlyphAtlas(chars: string = ASCII_RAMP): {
   });
 
   const texture = new THREE.CanvasTexture(canvas);
+  // Canvas rows stay top-to-bottom; the shader flips Y inside each glyph.
+  texture.flipY = false;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = false;

@@ -1,12 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 
-/**
- * Фильтр-чип со счётчиком: `REACT 8`.
- * Рамка 1px, моно-капс, при активации заливается ирисом.
- */
 export function Chip({
   label,
   count,
@@ -21,30 +16,24 @@ export function Chip({
   className?: string;
 }) {
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      whileTap={{ scale: 0.97 }}
       className={cn(
-        "group relative inline-flex min-h-11 items-center gap-2 border px-2.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors duration-300",
+        "group inline-flex min-h-11 max-w-full items-center gap-2 border px-3 font-mono text-[11px] uppercase tracking-[0.06em] transition-colors duration-300 motion-reduce:transition-none",
         active
-          ? "border-iris/70 bg-iris-dim text-ink"
-          : "border-line text-ink-dim hover:border-line-strong hover:text-ink",
+          ? "border-amber/60 bg-amber-dim text-ink"
+          : "border-line-strong text-ink-dim hover:border-amber/40 hover:text-ink",
         className,
       )}
     >
-      <span className="translate-y-px">{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
       {typeof count === "number" ? (
-        <span
-          className={cn(
-            "translate-y-px tabular-nums",
-            active ? "text-iris-light" : "text-ink-faint group-hover:text-ink-dim",
-          )}
-        >
+        <span className={cn("shrink-0 tabular-nums", active ? "text-amber" : "text-ink-dim")}>
           {count}
         </span>
       ) : null}
-    </motion.button>
+    </button>
   );
 }
