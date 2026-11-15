@@ -17,8 +17,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Коммиты делать, но НЕ пушить без явной команды.
 - Пуш только когда скажут.
 - `mainbackup` — резервная ветка старого `main` (`07a6a34`); не перезаписывать.
-- Рабочая копия этой сессии: `C:\Users\REDMI\AppData\Local\Temp\opencode\portfolio-main-publish`.
-- В исходной копии `D:\REDMI\vscodik\portfolio` есть пользовательские правки README/черновиков и `references/`; не переносить и не перезаписывать их автоматически.
+- Работать в исходной папке `D:\REDMI\vscodik\portfolio`, ветка `main`: пользователь попросил вернуть работу сюда, выполнен `git pull --ff-only origin main`.
+- Дополнительная копия `C:\Users\REDMI\AppData\Local\Temp\opencode\portfolio-main-publish` оставлена на detached HEAD `d1ab1b1`; не занимать там `main` повторно и не удалять её без просьбы.
+- В рабочей папке сохранены пользовательские `designtest.md`, `designtest2.md`, `designtest3.md` и `references/`; не включать их в свои коммиты и не перезаписывать.
+- Локальные файлы перед переключением сохранены в `C:\Users\REDMI\AppData\Local\Temp\opencode\portfolio-original-local-backup-20261115-194627`. Старый локальный README также сохранён в stash `a47fed07456f49448574285b9b850228b7c4360b`; актуальный README в `main` намеренно короткий.
 
 ## Структура
 - `src/content/projects.ts` — актуальные данные проектов и согласованные описания; `src/data/projects.ts` относится к старой реализации.
@@ -60,6 +62,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Hero/сад опубликованы в `3f9f53f`; [CI 43733824212](https://github.com/Kingrane/portfolio/actions/runs/43733824212) — build/deploy success.
 - `45f43df` добавил hover и оптимизацию обложек; затем увеличена заметность дизеринга, установлен `cursor: default`, обновлены эти инструкции и сокращён README. Новая production-сборка и встроенный TypeScript прошли; пользователь увидел работающий hover в браузере.
 - 15.11.2026 пользователь явно разрешил коммит и push всех этих готовых изменений в `main` с обновлением Pages. Это разовое разрешение, не автоматическое разрешение будущих push. Статус публикации смотреть в [deploy workflow](https://github.com/Kingrane/portfolio/actions/workflows/deploy.yml); push сам по себе не доказывает успешный deploy.
+- Публикация `d1ab1b1` подтверждена: [CI 43736329494](https://github.com/Kingrane/portfolio/actions/runs/43736329494) — build/deploy success; HTTP 200, canvas hover и `cursor: default` присутствуют на Pages.
+- Все 13 запасных HTML/ASCII-постеров показаны в отдельной галерее вне проекта: `C:\Users\REDMI\AppData\Local\Temp\opencode\portfolio-poster-gallery\index.html`. Пользователь обсуждает сохранение нынешних детальных обложек без анимации; пока это только обсуждение, живые обложки не отключены.
 - Обложки уже используют общий RAF, предрасчёт тора, dirty-cell atlas и паузу рисования при скролле. **Микрофриз у первых двух проектов остался; пользователь прямо отложил его исправление. Не профилировать и не менять производительность сейчас — ждать следующего запроса.**
 - Production build разрешён. Предыдущее разрешение браузера — только первые две карточки и новый hover; теперь проверки микрофриза отложены. Полный QA, Lighthouse и мобильные CPU-прогоны не запускать без нового разрешения.
 - Не выдавать короткие RAF-замеры за GPU/presented FPS и не заявлять полное устранение фризов. Старые проверки фазы A не подтверждают новые фазы.
