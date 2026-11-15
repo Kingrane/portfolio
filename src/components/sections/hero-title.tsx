@@ -25,7 +25,7 @@ export function HeroTitle() {
     const particles = Array.from({ length: 32 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, duration: 0 }));
     let glyphs: Glyph[] = [];
     let bounds = title.getBoundingClientRect();
-    let width = 0, height = 0, radius = 24;
+    let width = 0, height = 0, radius = 46;
     let x = 0, y = 0, clientX = 0, clientY = 0;
     let frame = 0, last = 0, emitted = 0, strength = 0;
     let hovered = false, visible = false, disposed = false, fontsReady = false, dirty = true;
@@ -56,7 +56,7 @@ export function HeroTitle() {
         const font = getComputedStyle(letter);
         const size = parseFloat(font.fontSize);
         const pad = Math.ceil(size * 0.12);
-        radius = Math.max(15, Math.min(24, size * 0.22));
+        radius = Math.max(22, Math.min(46, size * 0.34));
         scratch.width = Math.ceil(box.width) + pad * 2;
         scratch.height = Math.ceil(box.height) + pad * 2;
         mask.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
@@ -90,22 +90,22 @@ export function HeroTitle() {
       last = now;
       strength = hovered ? Math.min(1, strength + elapsed * 8) : Math.max(0, strength - elapsed * 4.5);
       context.clearRect(0, 0, width, height);
-      // Tiny Bayer voids/tints sit on glyph strokes, never on the surrounding sky.
+      // Visible Bayer voids/tints stay local to glyph strokes, not the sky.
       for (const glyph of glyphs) {
         if (!strength || x + radius < glyph.x || x - radius > glyph.x + glyph.width || y + radius < glyph.y || y - radius > glyph.y + glyph.height) continue;
-        const left = Math.max(0, Math.floor((x - radius - glyph.x) / 2) * 2);
-        const top = Math.max(0, Math.floor((y - radius - glyph.y) / 2) * 2);
+        const left = Math.max(0, Math.floor((x - radius - glyph.x) / 3) * 3);
+        const top = Math.max(0, Math.floor((y - radius - glyph.y) / 3) * 3);
         const right = Math.min(glyph.width, x + radius - glyph.x);
         const bottom = Math.min(glyph.height, y + radius - glyph.y);
-        for (let gy = top; gy < bottom; gy += 2) {
-          for (let gx = left; gx < right; gx += 2) {
+        for (let gy = top; gy < bottom; gy += 3) {
+          for (let gx = left; gx < right; gx += 3) {
             if (glyph.pixels[(gy * glyph.width + gx) * 4 + 3] < 180) continue;
             const amount = Math.max(0, 1 - Math.hypot(glyph.x + gx - x, glyph.y + gy - y) / radius) * strength;
-            const threshold = BAYER[((gy / 2) & 3) * 4 + ((gx / 2) & 3)];
-            if (threshold / 16 > amount * 0.72) continue;
-            context.globalAlpha = amount * 0.88;
+            const threshold = BAYER[((gy / 3) & 3) * 4 + ((gx / 3) & 3)];
+            if (threshold / 16 > amount * 0.95) continue;
+            context.globalAlpha = Math.min(1, amount * 1.6);
             context.fillStyle = threshold % 3 === 0 ? "#b7a3ff" : "#080610";
-            context.fillRect(glyph.x + gx, glyph.y + gy, 1.5, 1.5);
+            context.fillRect(glyph.x + gx, glyph.y + gy, 2.6, 2.6);
           }
         }
       }
@@ -117,8 +117,8 @@ export function HeroTitle() {
         particle.x += particle.vx * dt;
         particle.y += particle.vy * dt;
         particle.vy -= 8 * dt;
-        context.globalAlpha = (particle.life / particle.duration) * 0.7;
-        context.fillRect(particle.x, particle.y, 1.6, 1.6);
+        context.globalAlpha = (particle.life / particle.duration) * 0.9;
+        context.fillRect(particle.x, particle.y, 2.3, 2.3);
         if (particle.life > 0) active++;
       }
       if (hovered && strength > 0.35 && active < 10 && now - emitted > 65) {
