@@ -46,6 +46,7 @@ export function WorldPost({ cell }: { cell: number }) {
       pipeline.current = null;
       composer.dispose();
       atlas.texture.dispose();
+      reading.uReadingMask.value.dispose();
     };
   }, [gl, scene, camera, cell]);
 

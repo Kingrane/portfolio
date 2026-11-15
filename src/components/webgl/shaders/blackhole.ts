@@ -29,7 +29,7 @@ export const blackholeFragment = /* glsl */ `
   uniform int uSteps;      // 80..96 desktop, 32..40 mobile; 0 uses a fallback.
   uniform vec2 uResolution; // Actual HDR target size in pixels, independent of DPR.
   uniform float uOpacity;
-  uniform float uDive;     // 0..1: camera radius 18 -> 1.04 and exposure falls.
+  uniform float uDive;     // 0..1: eased approach to r=1.04, with gradual redshift.
   uniform float uZoom;     // Image-plane multiplier; larger makes the hole smaller.
   uniform vec2 uCenter;    // (uv - .5) * vec2(aspect, 1), not normalized UV.
 
@@ -138,12 +138,12 @@ export const blackholeFragment = /* glsl */ `
     id.x = mod(id.x, scale);
     id.y = clamp(id.y, 0.0, scale * 0.5 - 1.0);
     vec2 key = id + vec2(seed, seed * 1.73);
-    float exists = step(0.966, hash21(key + vec2(5.19, 12.71)));
+    float exists = step(0.94, hash21(key + vec2(5.19, 12.71)));
     vec2 center = 0.2 + 0.6 * hash22(key + vec2(23.1, 8.7));
     vec2 offset = fract(grid) - center;
     offset.x *= max(0.12, cos((spherical.y - 0.5) * PI));
 
-    float size = mix(0.035, 0.085, hash21(key + vec2(41.3, 79.7)));
+    float size = mix(0.03, 0.065, hash21(key + vec2(41.3, 79.7)));
     float aa = max(0.008, angularPixel * scale / TAU);
     float variance = size * size + aa * aa * 0.5;
     float core = exp(-dot(offset, offset) / variance) * size * size / variance;
@@ -151,7 +151,7 @@ export const blackholeFragment = /* glsl */ `
 
     // Four different seeds: brightness, oscillation amplitude, phase and
     // frequency are independent. Even the deepest twinkle stays >= 0.56.
-    float brightness = mix(0.65, 2.7, pow(hash21(key + vec2(61.7, 3.9)), 3.0));
+    float brightness = mix(0.8, 2.1, pow(hash21(key + vec2(61.7, 3.9)), 3.0));
     float amplitude = 0.1 + 0.12 * hash21(key + vec2(91.1, 17.3));
     float phase = TAU * hash21(key + vec2(7.7, 137.9));
     float frequency = 0.33 + 1.63 * hash21(key + vec2(173.3, 47.1));
@@ -163,12 +163,16 @@ export const blackholeFragment = /* glsl */ `
 
   void main() {
     if (uOpacity < 0.0001 || uIntro <= 0.0) {
-      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_FragColor = vec4(0.0);
       return;
     }
 
+    float dive = clamp(uDive, 0.0, 1.0);
     vec2 sp = (vUv - 0.5) * vec2(uAspect, 1.0);
-    vec2 p = (sp - uCenter - uPointer * 0.007) * max(0.15, uZoom);
+    // Aim into the shadow as it grows, instead of passing below a top-aligned
+    // mobile disk and losing its entire bright surface in one scroll step.
+    vec2 center = uCenter * (1.0 - smoothstep(0.0, 0.8, dive));
+    vec2 p = (sp - center - uPointer * 0.007) * max(0.15, uZoom);
     if (uPulse > 0.0 && uPulse < 1.0) {
       float distanceToWave = length(p) - (0.26 + uPulse * 1.1);
       float wave = exp(-distanceToWave * distanceToWave / 0.0012)
@@ -183,8 +187,7 @@ export const blackholeFragment = /* glsl */ `
       ? 0.6 * max(pixelSpan.x, pixelSpan.y)
       : 0.6 * max(length(dFdx(p)), length(dFdy(p)));
 
-    float dive = clamp(uDive, 0.0, 1.0);
-    float cameraRadius = mix(18.0, 1.04, pow(dive, 0.82));
+    float cameraRadius = mix(18.0, 1.04, dive * dive);
     float yaw = 0.028 * sin(uTime * 0.075) + uPointer.x * 0.045;
     float elevation = 0.11 + 0.012 * sin(uTime * 0.11) + uPointer.y * 0.025 + dive * 0.14;
     vec3 cameraDirection = vec3(sin(yaw) * cos(elevation), sin(elevation), cos(yaw) * cos(elevation));
@@ -273,8 +276,11 @@ export const blackholeFragment = /* glsl */ `
     }
     if (escaped) radiance += transmission * stars;
 
-    float exposure = 1.0 - smoothstep(0.58, 0.96, dive);
+    // Begin losing exposure before the observer crosses the emitting disk.
+    // Previously the disk filled the portrait viewport at full exposure, then
+    // vanished geometrically before the late fade could hide the discontinuity.
+    float exposure = exp(-6.0 * dive * dive) * (1.0 - smoothstep(0.6, 0.98, dive));
     gl_FragColor = vec4(max(radiance, vec3(0.0))
-      * smoothstep(0.0, 1.0, uIntro) * uOpacity * exposure, 1.0);
+      * smoothstep(0.0, 1.0, uIntro) * exposure, uOpacity);
   }
 `;

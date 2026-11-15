@@ -1,4 +1,4 @@
-import { Uniform, Vector2, Vector4 } from "three";
+import { LinearFilter, Texture, Uniform, Vector2, Vector4 } from "three";
 import { MAX_READING_ZONES, readingState } from "@/scene/reading-zones";
 
 export const readingZonesGLSL = /* glsl */ `
@@ -6,21 +6,12 @@ export const readingZonesGLSL = /* glsl */ `
   uniform float uReadingStrength[8];
   uniform vec2 uReadingViewport;
   uniform int uReadingCount;
+  uniform sampler2D uReadingMask;
 
-  // CSS-pixel capsules, including portrait/landscape aspect correction.
+  // One cached texture sample covers every line, not only the eight capsules
+  // retained on the CPU for moving flower instances. No per-pixel loops.
   float readingMask(vec2 uv) {
-    float mask = 0.0;
-    for (int i = 0; i < 8; i++) {
-      if (i >= uReadingCount) break;
-      vec4 box = uReading[i];
-      vec2 halfSize = (box.zw - box.xy) * uReadingViewport * 0.5;
-      vec2 p = abs((uv - (box.xy + box.zw) * 0.5) * uReadingViewport);
-      float radius = min(halfSize.x, halfSize.y);
-      vec2 axis = max(halfSize - radius, vec2(0.0));
-      float distanceToCapsule = length(max(p - axis, vec2(0.0))) - radius;
-      mask = max(mask, (1.0 - smoothstep(0.0, 24.0, distanceToCapsule)) * uReadingStrength[i]);
-    }
-    return mask;
+    return texture2D(uReadingMask, uv).r;
   }
 `;
 
@@ -39,7 +30,11 @@ export const readingContrastFragment = /* glsl */ `
 `;
 
 export function createReadingUniforms() {
+  const mask = new Texture();
+  mask.minFilter = mask.magFilter = LinearFilter;
+  mask.generateMipmaps = false;
   return {
+    uReadingMask: new Uniform(mask),
     uReading: new Uniform(Array.from({ length: MAX_READING_ZONES }, () => new Vector4())),
     uReadingStrength: new Uniform(new Float32Array(MAX_READING_ZONES)),
     uReadingViewport: new Uniform(new Vector2(1, 1)),
@@ -48,6 +43,12 @@ export function createReadingUniforms() {
 }
 
 export function syncReadingUniforms(uniforms: ReturnType<typeof createReadingUniforms>): void {
+  const texture = uniforms.uReadingMask.value;
+  if (readingState.mask && (texture.image !== readingState.mask || texture.userData.maskVersion !== readingState.maskVersion)) {
+    texture.image = readingState.mask;
+    texture.userData.maskVersion = readingState.maskVersion;
+    texture.needsUpdate = true;
+  }
   uniforms.uReadingCount.value = readingState.count;
   uniforms.uReadingViewport.value.set(readingState.width, readingState.height);
   for (let i = 0; i < readingState.count; i++) {

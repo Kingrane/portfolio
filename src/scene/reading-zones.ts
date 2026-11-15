@@ -10,6 +10,9 @@ export const readingState = {
   strengths: new Float32Array(MAX_READING_ZONES),
   width: 1,
   height: 1,
+  /** Low-resolution 2D coverage for all visible lines; not a second WebGL scene. */
+  mask: null as HTMLCanvasElement | null,
+  maskVersion: 0,
 };
 
 /** Same CSS-pixel capsule SDF as the GPU, used by the garden instances. */
@@ -37,6 +40,7 @@ interface ReadingSource {
   strength: number;
   /** Local text-line bounds, measured only when layout changes. */
   lines: Float32Array;
+  moving: boolean;
 }
 
 const SEMANTIC_TEXT = "h1,h2,h3,h4,p,a[href],button,li";
@@ -98,6 +102,7 @@ function measureSources(protectText: (element: HTMLElement) => void): ReadingSou
       fixed: Boolean(element.closest("[data-reading-fixed]")),
       strength: 1,
       lines: new Float32Array(lines),
+      moving: marquee,
     });
   }
   return sources;
@@ -105,6 +110,9 @@ function measureSources(protectText: (element: HTMLElement) => void): ReadingSou
 
 /** At most eight tight capsules. Never merge distant text into a black sheet. */
 export function installReadingZones(): () => void {
+  const mask = document.createElement("canvas");
+  const paint = mask.getContext("2d", { alpha: false })!;
+  readingState.mask = mask;
   let sources: ReadingSource[] = [];
   const priorities = new Float32Array(MAX_READING_ZONES);
   const boxes = new Float32Array(MAX_READING_ZONES * 4);
@@ -117,6 +125,7 @@ export function installReadingZones(): () => void {
     }
   };
   let raf = 0;
+  let movingTimer = 0;
   let layoutDirty = true;
   let active = true;
 
@@ -126,6 +135,20 @@ export function installReadingZones(): () => void {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const scroll = window.scrollY;
+    const scale = Math.min(width < 768 ? 256 : 512, width) / width;
+    const maskWidth = Math.round(width * scale);
+    const maskHeight = Math.round(height * scale);
+    if (mask.width !== maskWidth || mask.height !== maskHeight) {
+      mask.width = maskWidth;
+      mask.height = maskHeight;
+    }
+    paint.setTransform(scale, 0, 0, scale, 0, 0);
+    paint.shadowBlur = 0;
+    paint.fillStyle = "#000";
+    paint.fillRect(0, 0, width, height);
+    paint.fillStyle = "#fff";
+    paint.shadowColor = "#fff";
+    paint.shadowBlur = 18 * scale;
     if (layoutDirty) {
       for (const element of protectedElements) {
         if (!element.isConnected) { element.classList.remove(styles.reading); protectedElements.delete(element); }
@@ -139,12 +162,14 @@ export function installReadingZones(): () => void {
       layoutDirty = false;
     }
     let count = 0;
+    let moving = false;
     priorities.fill(-1);
     for (let i = 0; i < sources.length; i++) {
       const item = sources[i];
       if (!item.fixed && (item.bottom < scroll - 32 || item.top > scroll + height + 32)) continue;
       const rect = item.element.getBoundingClientRect();
       if (!rect.width || !rect.height || rect.bottom < 0 || rect.top > height) continue;
+      if (item.moving) moving = true;
       const lines = item.lines;
       for (let line = 0; line < lines.length; line += 4) {
         const left = Math.max(-32, rect.left + lines[line] - 8);
@@ -152,6 +177,12 @@ export function installReadingZones(): () => void {
         const right = Math.min(width + 32, rect.left + lines[line + 2] + 8);
         const bottom = rect.top + lines[line + 3] + 8;
         if (right <= 0 || left >= width || right <= left || bottom <= 0 || top >= height) continue;
+        // Every line is protected, even when the eight repulsion capsules are
+        // full. Extra horizontal padding covers the capsule's rounded ends.
+        const radius = (bottom - top) * 0.5;
+        paint.beginPath();
+        paint.roundRect(left - radius, top, right - left + radius * 2, bottom - top, radius);
+        paint.fill();
         const priority = item.strength * (1 - Math.min(0.7, Math.abs((top + bottom) * 0.5 / height - 0.45)));
         let slot = count;
         if (count === MAX_READING_ZONES) {
@@ -179,12 +210,17 @@ export function installReadingZones(): () => void {
       readingState.strengths[i] = strengths[i];
     }
     readingState.count = count;
+    readingState.maskVersion++;
+    window.clearTimeout(movingTimer);
+    // Marquee text moves without scrolling. Refresh at 12.5 Hz only while it
+    // is on screen; padded line masks cover movement between samples.
+    if (moving) movingTimer = window.setTimeout(schedule, 80);
   };
 
   const schedule = () => { if (active && !document.hidden && !raf) raf = requestAnimationFrame(update); };
   const onLayout = () => { layoutDirty = true; schedule(); };
   const onVisibility = () => {
-    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    if (document.hidden) { cancelAnimationFrame(raf); window.clearTimeout(movingTimer); raf = 0; }
     else onLayout();
   };
   window.addEventListener("scroll", schedule, { passive: true });
@@ -203,6 +239,7 @@ export function installReadingZones(): () => void {
   return () => {
     active = false;
     cancelAnimationFrame(raf);
+    window.clearTimeout(movingTimer);
     window.removeEventListener("scroll", schedule);
     window.removeEventListener("resize", onLayout);
     document.removeEventListener("pointerover", schedule);
@@ -213,5 +250,6 @@ export function installReadingZones(): () => void {
     for (const element of protectedElements) element.classList.remove(styles.reading);
     protectedElements.clear();
     readingState.count = 0;
+    if (readingState.mask === mask) readingState.mask = null;
   };
 }

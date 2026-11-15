@@ -24,7 +24,7 @@ const vertexShader = /* glsl */ `
     p.y += cos(uTime * 0.05 + aSeed * 4.71) * 0.18;
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
-    gl_PointSize = min(aSize * uPixelRatio * (34.0 / max(1.0, -mv.z)), 4.0);
+    gl_PointSize = clamp(aSize * uPixelRatio * (24.0 / max(1.0, -mv.z)), 1.0, 3.0);
     gl_Position = projectionMatrix * mv;
 
     // Separate frequency AND phase, with a luminous floor: the field never
@@ -73,7 +73,7 @@ export function Starfield({ count = STAR_COUNT }: { count?: number }) {
       positions[i * 3 + 1] = 14 - rand() * 96;
       positions[i * 3 + 2] = -6 - rand() * 42;
 
-      sizes[i] = 0.16 + rand() * 0.55;
+      sizes[i] = 0.55 + rand() * 0.9;
       seeds[i] = rand();
     }
 

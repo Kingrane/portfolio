@@ -1,0 +1,36 @@
+.card {
+  outline: 1px solid var(--color-line-strong);
+  outline-offset: -1px;
+  border-radius: var(--radius-sm);
+  background: rgb(4 5 6 / 0.1);
+  transition: outline-color 180ms ease, box-shadow 180ms ease;
+}
+
+.card:focus-within {
+  outline-color: color-mix(in srgb, var(--color-iris-light) 55%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color-iris) 9%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    outline-color: color-mix(in srgb, var(--color-iris-light) 55%, transparent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--color-iris) 9%, transparent);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 640px) {
+  .card {
+    transform: perspective(900px) rotateX(var(--card-rx, 0deg)) rotateY(var(--card-ry, 0deg));
+    transition: transform 160ms ease-out, outline-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .card[data-tilting] {
+    will-change: transform;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

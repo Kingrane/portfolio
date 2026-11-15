@@ -25,8 +25,8 @@ export function smoothstep(a: number, b: number, value: number): number {
 }
 
 const base: WorldState = {
-  hole: 1, dive: 0, stars: 0.24, streak: 0, rain: 0, growth: 0,
-  flowers: 0, fireflies: 0, ascii: 0.35,
+  hole: 1, dive: 0, stars: 0.55, streak: 0, rain: 0, growth: 0,
+  flowers: 0, fireflies: 0, ascii: 0.62,
   cameraY: 0, cameraZ: 0, cameraTilt: 0,
   // Linear RGB: #050507, not an sRGB value accidentally tone-mapped twice.
   backgroundR: 0.001518, backgroundG: 0.001518, backgroundB: 0.002125,
@@ -39,7 +39,7 @@ function frame(at: number, values: Partial<WorldState>): Keyframe {
 /** Scroll keys are calibrated to actual section positions after layout/fonts. */
 export const timeline: Keyframe[] = [
   frame(0, {}),
-  frame(0.08, { dive: 0.2, stars: 0.16, cameraY: -5, cameraTilt: 0.015 }),
+  frame(0.08, { dive: 0.42, stars: 0.16, cameraY: -5, cameraTilt: 0.015 }),
   frame(0.16, { hole: 0, dive: 1, stars: 0.02, ascii: 0.7, cameraY: -13, cameraZ: -1 }),
   frame(0.23, { hole: 0, dive: 1, stars: 1, ascii: 0.4, cameraY: -22, cameraZ: -1 }),
   frame(0.32, { hole: 0, dive: 1, stars: 0.45, streak: 1, rain: 0.65, ascii: 0.7, cameraY: -28 }),
@@ -86,7 +86,7 @@ export function calibrateTimeline(): void {
   );
   if (!(stack > 0 && projects > stack && garden > projects && footer > garden)) return;
   const keys = [
-    0, stack * 0.35, stack * 0.72, stack,
+    0, stack * 0.35, stack * 0.88, stack,
     stack + (projects - stack) * 0.65, projects,
     garden - (garden - projects) * 0.1, garden,
     footer, 1,

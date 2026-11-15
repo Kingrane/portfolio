@@ -1,0 +1,22 @@
+.layer {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.hero {
+  background-image: linear-gradient(rgba(5, 5, 7, 0.84), rgba(5, 5, 7, 0.84)), var(--poster-hero-mobile);
+}
+
+.night {
+  background-image: linear-gradient(rgba(5, 5, 7, 0.84), rgba(5, 5, 7, 0.84)), var(--poster-night-mobile);
+}
+
+@media (min-width: 769px) {
+  .hero {
+    background-image: linear-gradient(rgba(5, 5, 7, 0.84), rgba(5, 5, 7, 0.84)), var(--poster-hero-desktop);
+  }
+  .night {
+    background-image: linear-gradient(rgba(5, 5, 7, 0.84), rgba(5, 5, 7, 0.84)), var(--poster-night-desktop);
+  }
+}

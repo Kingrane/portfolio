@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useMediaQuery } from "@/lib/use-media-query";
+import { ScenePoster } from "./scene-poster";
 
 /**
  * Ленивая загрузка сцены.
@@ -56,12 +57,7 @@ export function SceneRoot() {
 
   return (
     <>
-      {/* Neutral loading/fallback surface. Phase B supplies the scene poster. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: "#050507" }}
-      />
+      {support !== "yes" || reduce ? <ScenePoster /> : null}
       {support === "yes" && !reduce ? <Scene /> : null}
     </>
   );

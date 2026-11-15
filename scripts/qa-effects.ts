@@ -17,6 +17,18 @@ try {
     const name = mobile ? "mobile" : "desktop";
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile });
     const page = await context.newPage();
+    await page.addInitScript(() => {
+      const stats = window as unknown as Window & { __qaDraws: number };
+      stats.__qaDraws = 0;
+      const prototype = WebGL2RenderingContext.prototype as unknown as Record<string, (...args: unknown[]) => unknown>;
+      for (const name of ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced"]) {
+        const original = prototype[name];
+        prototype[name] = function (...args: unknown[]) {
+          stats.__qaDraws++;
+          return Reflect.apply(original, this, args);
+        };
+      }
+    });
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("console", (e) => { if (e.type() === "error") errors.push(e.text()); });
@@ -63,9 +75,43 @@ try {
     await page.waitForTimeout(700);
     await page.locator("#stack h2").hover();
     await page.screenshot({ path: join(out, "effects", `${name}-stack.png`), scale: "css" });
+    await page.locator("#projects article").first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(800);
+    const card = page.locator("#projects article").first();
+    const cardBox = (await card.boundingBox())!;
+    if (!mobile) {
+      await page.mouse.move(cardBox.x + cardBox.width * 0.2, cardBox.y + cardBox.height * 0.4);
+      await page.waitForTimeout(200);
+      const left = await card.evaluate((element) => parseFloat((element as HTMLElement).style.getPropertyValue("--card-ry")));
+      await page.mouse.move(cardBox.x + cardBox.width * 0.8, cardBox.y + cardBox.height * 0.4);
+      await page.waitForTimeout(200);
+      const right = await card.evaluate((element) => parseFloat((element as HTMLElement).style.getPropertyValue("--card-ry")));
+      assert.ok(left > 0 && right < 0 && Math.abs(left) <= 3 && Math.abs(right) <= 3, "card tilts toward the pointer edge");
+      await page.screenshot({ path: join(out, "effects", "desktop-card-tilt.png"), scale: "css" });
+      await page.mouse.move(1, 1);
+      await page.waitForTimeout(800);
+      assert.equal(await card.evaluate((element) => (element as HTMLElement).style.getPropertyValue("--card-ry")), "0deg");
+    }
+    await page.screenshot({ path: join(out, "effects", `${name}-projects.png`), scale: "css" });
     await page.locator("#garden").scrollIntoViewIfNeeded();
     await page.waitForTimeout(700);
     await page.screenshot({ path: join(out, "effects", `${name}-garden.png`), scale: "css" });
+    // Synthetic visibility event exercises the application's pause path, not
+    // Chrome's separate background-tab throttling. Count actual WebGL draws.
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { value: true, configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForTimeout(200);
+    const pausedAt = await page.evaluate(() => (window as unknown as Window & { __qaDraws: number }).__qaDraws);
+    await page.waitForTimeout(600);
+    assert.equal(await page.evaluate(() => (window as unknown as Window & { __qaDraws: number }).__qaDraws), pausedAt, "no WebGL draws while hidden");
+    await page.evaluate(() => {
+      Reflect.deleteProperty(document, "hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForTimeout(300);
+    assert.ok(await page.evaluate(() => (window as unknown as Window & { __qaDraws: number }).__qaDraws) > pausedAt, "drawing resumes on visibility");
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await page.waitForTimeout(1000);
     if (mobile) {
@@ -87,7 +133,7 @@ try {
     assert.equal(await canvas.evaluate((element: HTMLCanvasElement) => element.getContext("webgl2")?.isContextLost()), false);
     await page.screenshot({ path: join(out, "effects", `${name}-restored.png`), scale: "css" });
     assert.deepEqual(errors, [], `${name}: shader/runtime errors`);
-    results.push({ viewport, canvasCount: 1, heading: "Стэк", warmTrailPixels: { before, during, after }, contextRestore: true, errors });
+    results.push({ viewport, canvasCount: 1, heading: "Стэк", warmTrailPixels: { before, during, after }, contextRestore: true, syntheticVisibilityPause: "draw calls stop and resume", cardTilt: mobile ? "disabled on touch" : "left/right/reset passed", errors });
     await context.close();
   }
 } finally {

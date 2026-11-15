@@ -7,8 +7,7 @@ export const asciiFragment = /* glsl */ `
   uniform float uStrength;
   uniform float uTime; // performance.now seconds, same epoch as event histories
   uniform vec4 uTrail[8]; // CSS x/y from top-left, birth, energy
-  uniform vec4 uReactions[4]; // CSS center x/y, ellipse half-size
-  uniform vec4 uReactionTimes;
+  uniform float uTrailActive;
   ${readingZonesGLSL}
 
   // Bayer recursion with an actual normalized 8x8 threshold, not noise.
@@ -49,7 +48,7 @@ export const asciiFragment = /* glsl */ `
     // Keep the brilliant core/ring clear; ASCII grows along the light's edges.
     float preserveCore = 1.0 - smoothstep(0.6, 1.8, luma(inputColor.rgb));
     float protection = readingMask(uv);
-    float mask = uStrength * clamp(0.2 + edge * 0.8, 0.0, 1.0);
+    float mask = uStrength * clamp(0.4 + edge * 0.6, 0.0, 1.0);
     mask *= litOnly * preserveCore * (1.0 - protection);
     vec3 color = mix(inputColor.rgb, cell * glyph * 2.1, mask);
 
@@ -57,8 +56,7 @@ export const asciiFragment = /* glsl */ `
     // Cell centers keep each glyph intact; screen px keep radii stable at any DPR.
     vec2 screenCell = vec2(center.x, 1.0 - center.y) * uResolution;
     float trailLight = 0.0;
-    float reactionLight = 0.0;
-    for (int i = 0; i < 8; i++) {
+    if (uTrailActive > 0.5) for (int i = 0; i < 8; i++) {
       vec4 samplePoint = uTrail[i];
       float age = uTime - samplePoint.z;
       if (age < 0.0 || age > 0.62 || samplePoint.w <= 0.0) continue;
@@ -68,18 +66,7 @@ export const asciiFragment = /* glsl */ `
       float footprint = 1.0 - smoothstep(radius * 0.15, radius, distanceToTrail);
       trailLight = max(trailLight, footprint * life * samplePoint.w);
     }
-    for (int i = 0; i < 4; i++) {
-      float age = uTime - uReactionTimes[i];
-      if (age < 0.0 || age > 0.82) continue;
-      vec4 reaction = uReactions[i];
-      vec2 extent = max(reaction.zw + age * vec2(24.0, 32.0), vec2(12.0));
-      float ellipse = length((screenCell - reaction.xy) / extent);
-      // An expanding hollow lattice: the label stays clear in the bubble's core.
-      float ring = 1.0 - smoothstep(0.08, 0.32, abs(ellipse - 1.12));
-      float life = smoothstep(0.0, 0.05, age) * (1.0 - smoothstep(0.12, 0.82, age));
-      reactionLight = max(reactionLight, ring * life);
-    }
-    float energy = max(trailLight, reactionLight * 0.9) * (1.0 - protection);
+    float energy = trailLight * (1.0 - protection);
     if (energy > 0.002) {
       float seed = cellHash(index);
       float sparkIndex = 3.0 + floor(seed * 5.0);

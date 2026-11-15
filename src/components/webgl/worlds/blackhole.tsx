@@ -143,6 +143,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
         `}
         depthWrite={false}
         depthTest={false}
+        transparent
       />
     </mesh>
   );

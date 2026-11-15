@@ -10,7 +10,7 @@
 
 /* Also works with poster-only/reduced-motion rendering; no moving DOM text. */
 .hovered {
-  filter: brightness(1.14);
+  color: var(--color-iris-light);
 }
 
 .focused:focus-visible {

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { Blackhole } from "./worlds/blackhole";
+import { NightSky } from "./worlds/night-sky";
 import { Starfield } from "./worlds/starfield";
 import { Constellations } from "./worlds/constellations";
 import { Garden } from "./worlds/garden";
@@ -58,7 +59,7 @@ export default function Scene() {
   }, []);
 
   const starCount = quality >= 0.5 ? (isNarrow ? 700 : 1400) : isNarrow ? 320 : 600;
-  const flowerCount = quality >= 0.5 ? (isNarrow ? 80 : 150) : 60;
+  const flowerCount = quality >= 0.5 ? (isNarrow ? 170 : 360) : isNarrow ? 90 : 180;
   const cell = isNarrow ? 13 : 10;
 
   return (
@@ -86,7 +87,7 @@ export default function Scene() {
             },
             false,
           );
-          gl.setClearColor(new THREE.Color("#050507"), 1);
+          gl.setClearColor(0x000000, 1);
         }}
       >
         <PerformanceMonitor
@@ -98,6 +99,7 @@ export default function Scene() {
           flipflops={3}
         >
           <Rig />
+          <NightSky />
           <Starfield count={starCount} />
           <Blackhole quality={quality} narrow={isNarrow} />
 
