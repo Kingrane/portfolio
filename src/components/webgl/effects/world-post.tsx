@@ -12,6 +12,7 @@ import { createReadingUniforms, readingContrastFragment, syncReadingUniforms } f
 import { outputFragment } from "../shaders/output";
 import { AsciiEffectImpl } from "./ascii-effect";
 import { createGlyphAtlas } from "./glyph-atlas";
+import { diagnosticFrame, eventTime, frozen } from "@/scene/diagnostics";
 
 const QA_FIELDS = ["cell", "gain", "ambient", "dither", "emitters"] as const;
 function expose(canvas: HTMLCanvasElement, previous: Float64Array, index: number, value: number): void {
@@ -120,11 +121,16 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
       ]),
     });
     const composer = new EffectComposer(gl, { frameBufferType: HalfFloatType, multisampling: 0 });
+    scene.name = "World scene";
     composer.addPass(new RenderPass(scene, camera));
     // Separate passes make output order explicit and stable.
-    composer.addPass(new EffectPass(camera, ascii));
+    const asciiPass = new EffectPass(camera, ascii);
+    if (asciiPass.fullscreenMaterial) asciiPass.fullscreenMaterial.name = "ASCII pass";
+    composer.addPass(asciiPass);
     // These effects do not sample inputBuffer: insertion order survives merging.
-    composer.addPass(new EffectPass(camera, tone, contrast, output));
+    const outputPass = new EffectPass(camera, tone, contrast, output);
+    if (outputPass.fullscreenMaterial) outputPass.fullscreenMaterial.name = "Tone/contrast/dither output";
+    composer.addPass(outputPass);
     pipeline.current = {
       composer, ascii, reading, width: 0, height: 0, dpr: 0, dither, heroDim, nodes,
       paint, stamp, lastNodes: -1, nodeCount: 0, exposed: new Float64Array(5).fill(NaN),
@@ -144,7 +150,7 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
     };
   }, [gl, scene, camera, cell]);
 
-  useFrame((state, delta) => {
+  useFrame(diagnosticFrame("WorldPost", (state, delta) => {
     const current = pipeline.current;
     if (!current || document.hidden) return;
     const { size } = state;
@@ -167,7 +173,7 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
       current.ascii.uniforms.get("uGardenTexel")!.value.set(1 / current.garden.width, 1 / current.garden.height);
       current.stars.setSize(Math.max(1, Math.round(size.width * dpr)), Math.max(1, Math.round(size.height * dpr)));
     }
-    const now = performance.now() * 0.001;
+    const now = eventTime();
     current.ascii.setInteractions(interactionState, now);
     current.ascii.setTuning(narrow);
     const dive = worldState.dive;
@@ -187,7 +193,7 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
     current.ascii.uniforms.get("uRain")!.value = (1 - worldState.hole)
       * (0.35 + 0.2 * rain) * (1 - worldState.flowers) * (1 - worldState.fireflies);
     const auraActive = worldState.flowers > 0.02 && worldState.growth > 0.1;
-    if (now - current.lastAura > 0.05 && (auraActive || current.auraActive || current.lastAura < 0)) {
+    if ((frozen || now - current.lastAura > 0.05) && (auraActive || current.auraActive || current.lastAura < 0)) {
       const paint = current.auraPaint;
       const scale = paint.canvas.width / size.width;
       paint.setTransform(scale, 0, 0, scale, 0, 0);
@@ -210,7 +216,7 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
     // The node mask follows projected geometry at 20 Hz. Dormant worlds neither
     // paint nor upload a texture; interpolation is provided by soft stamp edges.
     const count = asciiSources.nodeCount;
-    if (now - current.lastNodes > 0.05 && (count > 0 || current.nodeCount > 0 || current.lastNodes < 0)) {
+    if ((frozen || now - current.lastNodes > 0.05) && (count > 0 || current.nodeCount > 0 || current.lastNodes < 0)) {
       const paint = current.paint;
       const scale = paint.canvas.width / size.width;
       paint.setTransform(scale, 0, 0, scale, 0, 0);
@@ -276,6 +282,6 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
       current.ascii.uniforms.get("uGardenMask")!.value = current.empty;
     }
     current.composer.render(Math.min(delta, 0.06));
-  }, 1);
+  }), 1);
   return null;
 }

@@ -10,6 +10,7 @@ import { asciiSources } from "@/scene/ascii-sources";
 import { asciiEvents } from "@/scene/ascii-events";
 import { gardenState } from "@/scene/garden-state";
 import { hashString, mulberry32 } from "@/lib/ascii";
+import { diagnosticFrame, eventTime, frozen, sceneTime } from "@/scene/diagnostics";
 import {
   flowerVertex, flowerFragment, foliageVertex, foliageFragment,
   flowerCoreVertex, flowerCoreFragment,
@@ -211,6 +212,7 @@ export function Garden({ count = 90 }: { count?: number }) {
     const coverage = new THREE.Group();
     coverage.matrixAutoUpdate = false;
     const coverageScene = new THREE.Scene();
+    coverageScene.name = "Garden coverage";
     coverageScene.add(coverage);
     asciiSources.garden = coverageScene;
     root.add(field);
@@ -356,11 +358,11 @@ export function Garden({ count = 90 }: { count?: number }) {
     };
   }, [count, narrow]);
 
-  useFrame((state, delta) => {
+  useFrame(diagnosticFrame("Garden", (state, delta) => {
     const r = resources.current;
     const container = group.current;
     if (!r || !container) return;
-    const damping = Math.min(1, delta * 5);
+    const damping = frozen ? 1 : Math.min(1, delta * 5);
     fade.current += (worldState.flowers - fade.current) * damping;
     flyFade.current += (worldState.fireflies - flyFade.current) * damping;
     r.field.visible = fade.current > 0.004 && worldState.growth > 0.004;
@@ -378,7 +380,7 @@ export function Garden({ count = 90 }: { count?: number }) {
     r.coverage.matrix.copy(container.matrixWorld);
     r.coverage.matrixWorldNeedsUpdate = true;
 
-    const time = state.clock.elapsedTime;
+    const time = sceneTime(state.clock.elapsedTime);
     const aspect = state.size.width / Math.max(1, state.size.height);
     // Mask materials retain the SAME uniform objects as their visible meshes.
     const uniforms = r.materials[0].uniforms;
@@ -389,8 +391,8 @@ export function Garden({ count = 90 }: { count?: number }) {
     uniforms.uAspect.value = aspect;
     const highlight = uniforms.uHighlight.value as Float32Array;
     const landing = uniforms.uLanding.value as Float32Array;
-    const now = performance.now() * 0.001;
-    const highlightDamping = 1 - Math.exp(-delta * 8);
+    const now = eventTime();
+    const highlightDamping = frozen ? 1 : 1 - Math.exp(-delta * 8);
     for (let i = 0; i < 4; i++) {
       highlight[i] += ((gardenState.active === i ? 1 : 0) - highlight[i]) * highlightDamping;
       const age = now - asciiEvents.flowerBorn[i];
@@ -461,7 +463,7 @@ export function Garden({ count = 90 }: { count?: number }) {
       }
     }
     if (r.field.visible) uploadProtections(r.protectionAttributes);
-  }, -1);
+  }), -1);
 
   return <group ref={group} position={[0, -58, 0]} dispose={null} />;
 }

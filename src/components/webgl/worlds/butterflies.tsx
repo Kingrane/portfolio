@@ -7,6 +7,7 @@ import { asciiSources, BUTTERFLY_TRAIL_SAMPLES, setAsciiEmitter } from "@/scene/
 import { asciiEvents } from "@/scene/ascii-events";
 import { gardenState } from "@/scene/garden-state";
 import { worldState, smoothstep } from "@/scene/timeline";
+import { diagnosticFrame, eventTime, frozen, sceneTime } from "@/scene/diagnostics";
 
 const COUNT = 4;
 const vertex = /* glsl */ `
@@ -57,10 +58,37 @@ interface Resources {
   lastTrail: Float64Array;
 }
 
+/** The existing analytic flight, also sampled backwards for frozen histories. */
+function positionAt(center: THREE.Vector3, i: number, time: number, narrow: boolean): void {
+  const elapsed = time + i * 3.6;
+  const cycle = Math.floor(elapsed / 15);
+  const phase = elapsed % 15;
+  const flower = (i + cycle) % 4;
+  const n = flower * 3;
+  const orbit = phase / 15 * Math.PI * 2;
+  const landing = phase >= 11 ? 1 - smoothstep(13, 15, phase) : smoothstep(8, 11, phase);
+  const x = Math.cos(orbit + i) * (1.5 + i * 0.12);
+  const y = 0.7 + Math.sin(orbit * 2 + i) * 0.65;
+  const z = Math.sin(orbit + i * 0.7) * 0.7;
+  const curlX = -Math.sin(x * 0.7 + time * 1.1) * Math.sin(y) - 0.7 * Math.cos(z * 0.7 + time * 0.9) * Math.cos(x);
+  const curlY = -Math.sin(y * 0.8 + time) * Math.sin(z) - 0.7 * Math.cos(x * 0.7 + time * 1.1) * Math.cos(y);
+  const curlZ = -Math.sin(z * 0.7 + time * 0.9) * Math.sin(x) - 0.8 * Math.cos(y * 0.8 + time) * Math.cos(z);
+  const flight = (1 - landing) * (narrow ? 0.35 : 0.75);
+  const previous = ((flower + 3) % 4) * 3;
+  const travel = smoothstep(0, 4, phase);
+  const ax = THREE.MathUtils.lerp(gardenState.anchors[previous], gardenState.anchors[n], travel);
+  const ay = THREE.MathUtils.lerp(gardenState.anchors[previous + 1], gardenState.anchors[n + 1], travel);
+  const az = THREE.MathUtils.lerp(gardenState.anchors[previous + 2], gardenState.anchors[n + 2], travel);
+  center.set(ax + (x + curlX * 0.22) * flight,
+    ay + 0.16 + (y + curlY * 0.22) * flight,
+    az + 0.2 + (z + curlZ * 0.22) * flight);
+}
+
 export function Butterflies() {
   const group = useRef<THREE.Group>(null);
   const resources = useRef<Resources | null>(null);
   const projected = useRef(new THREE.Vector3());
+  const previousPosition = useRef(new THREE.Vector3());
   const wasVisible = useRef(false);
   useEffect(() => {
     if (!group.current) return;
@@ -120,7 +148,7 @@ export function Butterflies() {
     };
   }, []);
 
-  useFrame((state) => {
+  useFrame(diagnosticFrame("Butterflies", (state) => {
     const r = resources.current;
     if (!r || document.hidden) return;
     const visible = worldState.flowers > 0.02 && worldState.growth > 0.1;
@@ -135,8 +163,12 @@ export function Butterflies() {
       return;
     }
     wasVisible.current = true;
-    const now = performance.now() * 0.001;
-    const time = state.clock.elapsedTime;
+    const now = eventTime();
+    const time = sceneTime(state.clock.elapsedTime);
+    if (frozen) {
+      asciiEvents.flowerBorn.fill(-1000);
+      asciiSources.butterflyTrail.fill(0);
+    }
     r.material.uniforms.uTime.value = time;
     r.material.uniforms.uFade.value = Math.min(1, worldState.flowers * 1.4);
     for (let i = 0; i < COUNT; i++) {
@@ -144,34 +176,20 @@ export function Butterflies() {
       const cycle = Math.floor(elapsed / 15);
       const phase = elapsed % 15;
       const flower = (i + cycle) % 4;
-      const n = flower * 3;
       const center = r.centers[i];
-      const oldX = center.x;
-      const oldY = center.y;
-      const orbit = phase / 15 * Math.PI * 2;
+      if (frozen) positionAt(previousPosition.current, i, Math.max(0, time - 1 / 60), state.size.width < 768);
+      const oldX = frozen ? previousPosition.current.x : center.x;
+      const oldY = frozen ? previousPosition.current.y : center.y;
       const landing = phase >= 11 ? 1 - smoothstep(13, 15, phase) : smoothstep(8, 11, phase);
-      const x = Math.cos(orbit + i) * (1.5 + i * 0.12);
-      const y = 0.7 + Math.sin(orbit * 2 + i) * 0.65;
-      const z = Math.sin(orbit + i * 0.7) * 0.7;
-      // Curl of a trigonometric vector potential, not a random teleport path.
-      const curlX = -Math.sin(x * 0.7 + time * 1.1) * Math.sin(y) - 0.7 * Math.cos(z * 0.7 + time * 0.9) * Math.cos(x);
-      const curlY = -Math.sin(y * 0.8 + time) * Math.sin(z) - 0.7 * Math.cos(x * 0.7 + time * 1.1) * Math.cos(y);
-      const curlZ = -Math.sin(z * 0.7 + time * 0.9) * Math.sin(x) - 0.8 * Math.cos(y * 0.8 + time) * Math.cos(z);
       const flight = (1 - landing) * (state.size.width < 768 ? 0.35 : 0.75);
-      const previous = ((flower + 3) % 4) * 3;
-      const travel = smoothstep(0, 4, phase);
-      const ax = THREE.MathUtils.lerp(gardenState.anchors[previous], gardenState.anchors[n], travel);
-      const ay = THREE.MathUtils.lerp(gardenState.anchors[previous + 1], gardenState.anchors[n + 1], travel);
-      const az = THREE.MathUtils.lerp(gardenState.anchors[previous + 2], gardenState.anchors[n + 2], travel);
-      center.set(ax + (x + curlX * 0.22) * flight,
-        ay + 0.16 + (y + curlY * 0.22) * flight,
-        az + 0.2 + (z + curlZ * 0.22) * flight);
+      positionAt(center, i, time, state.size.width < 768);
+      if (frozen) r.angles[i] = 0;
       if (flight > 0.1 && Math.abs(center.x - oldX) + Math.abs(center.y - oldY) > 0.0001) {
         r.angles[i] = Math.atan2(center.y - oldY, center.x - oldX) - Math.PI * 0.5;
       }
       if (phase >= 11 && phase < 13 && r.cycles[i] !== cycle) {
-        asciiEvents.flowerBorn[flower] = now;
-        r.cycles[i] = cycle;
+        asciiEvents.flowerBorn[flower] = frozen ? now - (phase - 11) : now;
+        if (!frozen) r.cycles[i] = cycle;
       }
       if (i >= 2) continue;
       projected.current.copy(center).project(state.camera);
@@ -180,7 +198,20 @@ export function Butterflies() {
       const radius = state.size.width * 0.125;
       const onScreen = projected.current.z < 1 && sx > -radius && sx < state.size.width + radius && sy > -radius && sy < state.size.height + radius;
       setAsciiEmitter(i + 1, sx, sy, radius, onScreen ? worldState.flowers : 0);
-      if (onScreen && now - r.lastTrail[i] >= 0.075) {
+      if (frozen) {
+        for (let sample = 0; sample < BUTTERFLY_TRAIL_SAMPLES; sample++) {
+          const age = sample * 0.075;
+          if (time < age) continue;
+          positionAt(projected.current, i, time - age, state.size.width < 768);
+          projected.current.project(state.camera);
+          const slot = (i * BUTTERFLY_TRAIL_SAMPLES + sample) * 4;
+          asciiSources.butterflyTrail[slot] = (projected.current.x + 1) * state.size.width * 0.5;
+          asciiSources.butterflyTrail[slot + 1] = (1 - projected.current.y) * state.size.height * 0.5;
+          asciiSources.butterflyTrail[slot + 2] = now - age;
+          asciiSources.butterflyTrail[slot + 3] = onScreen ? radius : 0;
+        }
+      }
+      if (!frozen && onScreen && now - r.lastTrail[i] >= 0.075) {
         const slot = (i * BUTTERFLY_TRAIL_SAMPLES + r.heads[i]) * 4;
         const trail = asciiSources.butterflyTrail;
         trail[slot] = sx;
@@ -191,6 +222,6 @@ export function Butterflies() {
         r.lastTrail[i] = now;
       }
     }
-  });
+  }));
   return <group ref={group} dispose={null} />;
 }

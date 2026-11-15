@@ -7,6 +7,7 @@ import { blackholeFragment, blackholeVertex } from "../shaders/blackhole";
 import { pointerState } from "@/lib/store";
 import { worldState } from "@/scene/timeline";
 import { asciiSources } from "@/scene/ascii-sources";
+import { diagnosticFrame, frozen, sceneTime } from "@/scene/diagnostics";
 
 /**
  * Мир 1: чёрная дыра.
@@ -65,6 +66,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     const quad = new THREE.Mesh(geometry, material);
     quad.frustumCulled = false;
     const scene = new THREE.Scene();
+    scene.name = "Blackhole integration";
     scene.add(quad);
     pipeline.current = { target, scene, camera: new THREE.Camera(), material };
     return () => {
@@ -82,6 +84,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
   // Клик по странице = ударная волна
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
+      if (frozen) return;
       const target = e.target as HTMLElement | null;
       // Не мешаем кликам по ссылкам и кнопкам
       if (target?.closest("a, button, [role='button']")) return;
@@ -91,7 +94,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     return () => window.removeEventListener("pointerdown", onDown);
   }, []);
 
-  useFrame((state, delta) => {
+  useFrame(diagnosticFrame("Blackhole", (state, delta) => {
     const current = pipeline.current;
     if (!current || !display.current || !mesh.current) return;
     // After the dive the expensive integration is completely skipped.
@@ -100,9 +103,9 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     if (!active) return;
     const m = current.material;
     const dt = Math.min(delta, 0.05);
-    const t = state.clock.elapsedTime;
+    const t = sceneTime(state.clock.elapsedTime);
 
-    const ease = 1 - Math.exp(-3 * dt);
+    const ease = frozen ? 1 : 1 - Math.exp(-3 * dt);
     smoothPointer.current.x += ((pointerState.inside ? pointerState.nx : 0) - smoothPointer.current.x) * ease;
     smoothPointer.current.y += ((pointerState.inside ? pointerState.ny : 0) - smoothPointer.current.y) * ease;
 
@@ -119,7 +122,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     m.uniforms.uQuality.value = quality;
     m.uniforms.uSteps.value = narrow ? (quality >= 0.5 ? 40 : 32) : (quality >= 0.5 ? 96 : quality >= 0.35 ? 80 : 64);
     m.uniforms.uResolution.value.set(width, height);
-    m.uniforms.uIntro.value = Math.min(1, m.uniforms.uIntro.value + dt * 2);
+    m.uniforms.uIntro.value = frozen ? Math.min(1, t * 2) : Math.min(1, m.uniforms.uIntro.value + dt * 2);
     m.uniforms.uOpacity.value = worldState.hole;
     m.uniforms.uDive.value = worldState.dive;
     // The integrated critical impact parameter projects to ~0.244 image units.
@@ -159,7 +162,7 @@ export function Blackhole({ quality, narrow = false }: { quality: number; narrow
     display.current.uniforms.uOpacity.value = worldState.hole;
     asciiSources.hole = current.target.texture;
     asciiSources.cleanStars = current.target.textures[1];
-  }, -1);
+  }), -1);
 
   return (
     <mesh ref={mesh} renderOrder={-100} frustumCulled={false} visible={false}>

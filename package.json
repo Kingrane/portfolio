@@ -6,7 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "perf:serve": "node --experimental-strip-types scripts/perf/serve.ts",
+    "perf:visual": "node --experimental-strip-types scripts/visual-baseline.ts",
+    "perf:diff": "node --experimental-strip-types scripts/visual-diff.ts",
+    "perf:measure": "node --experimental-strip-types scripts/perf-baseline.ts",
+    "perf:analyze": "next build --webpack",
+    "perf:lighthouse": "node --experimental-strip-types scripts/perf/lighthouse.ts",
+    "perf:trace-summary": "node --experimental-strip-types scripts/perf/trace-summary.ts",
+    "perf:bundle-loading": "node --experimental-strip-types scripts/perf/bundle-loading.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -22,14 +30,21 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.9",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.187.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "lighthouse": "^13.6.0",
+    "pixelmatch": "^8.0.0",
     "playwright": "^1.65.1",
+    "pngjs": "^7.0.0",
+    "ssim.js": "^3.5.0",
+    "stats-gl": "^4.2.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

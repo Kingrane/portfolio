@@ -3,16 +3,17 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { ShaderMaterial } from "three";
+import { diagnosticFrame, sceneTime } from "@/scene/diagnostics";
 
 /** Low indigo night light, with the reading side left dark, not a CSS fog. */
 export function NightSky() {
   const material = useRef<ShaderMaterial>(null);
   const uniforms = useMemo(() => ({ uTime: { value: 0 }, uAspect: { value: 1 } }), []);
-  useFrame((state) => {
+  useFrame(diagnosticFrame("NightSky", (state) => {
     if (!material.current) return;
-    material.current.uniforms.uTime.value = state.clock.elapsedTime;
+    material.current.uniforms.uTime.value = sceneTime(state.clock.elapsedTime);
     material.current.uniforms.uAspect.value = state.size.width / Math.max(1, state.size.height);
-  });
+  }));
   return (
     <mesh renderOrder={-110} frustumCulled={false}>
       <planeGeometry args={[2, 2]} />

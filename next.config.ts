@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -14,4 +15,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default process.env.ANALYZE === "true"
+  ? bundleAnalyzer({ enabled: true, openAnalyzer: false })(nextConfig)
+  : nextConfig;

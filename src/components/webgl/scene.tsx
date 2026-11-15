@@ -16,6 +16,7 @@ import { pointerState, viewState } from "@/lib/store";
 import { sampleTimeline, worldState } from "@/scene/timeline";
 import { languages, technologies } from "@/content/stack";
 import { useMediaQuery } from "@/lib/use-media-query";
+import { diagnosticFrame, frozen, loadPerf } from "@/scene/diagnostics";
 
 /**
  * ЕДИНСТВЕННЫЙ WebGL-контекст на весь сайт.
@@ -28,11 +29,11 @@ import { useMediaQuery } from "@/lib/use-media-query";
 
 function Rig() {
   const lookTarget = useRef(new THREE.Vector3());
-  useFrame((state, delta) => {
+  useFrame(diagnosticFrame("Rig", (state, delta) => {
     const dt = Math.min(delta, 0.06);
     const cam = state.camera;
     sampleTimeline(viewState.progress);
-    const lerp = 1 - Math.pow(0.001, dt);
+    const lerp = frozen ? 1 : 1 - Math.pow(0.001, dt);
     cam.position.y += (worldState.cameraY - cam.position.y) * lerp;
     cam.position.z += (worldState.cameraZ - cam.position.z) * lerp;
     cam.position.x += (pointerState.nx * 0.35 - cam.position.x) * lerp;
@@ -40,7 +41,7 @@ function Rig() {
     cam.lookAt(lookTarget.current);
     cam.rotation.z = worldState.cameraTilt - pointerState.nx * 0.008;
     cam.updateMatrixWorld();
-  }, -2);
+  }), -2);
 
   return null;
 }
@@ -65,7 +66,7 @@ export default function Scene() {
   const cell = isNarrow ? 11 : 10;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0" aria-hidden data-world-canvas>
+    <div className="pointer-events-none fixed inset-0 z-0" aria-hidden data-world-canvas data-qa-quality={quality}>
       <Canvas
         frameloop={visible ? "always" : "never"}
         dpr={Math.max(1, Math.min(window.devicePixelRatio, (isNarrow ? 1.4 : 1.8) * (quality < 0.5 ? 0.7 : 1)))}
@@ -77,7 +78,8 @@ export default function Scene() {
           stencil: false,
           depth: true,
         }}
-        onCreated={({ gl }) => {
+        onCreated={(state) => {
+          const { gl } = state;
           // The canvas owns renderer configuration; post passes own HDR mapping.
           gl.toneMapping = THREE.NoToneMapping;
           gl.domElement.setAttribute("data-qa-webgl", "");
@@ -90,14 +92,15 @@ export default function Scene() {
             false,
           );
           gl.setClearColor(0x000000, 1);
+          loadPerf(state);
         }}
       >
         <PerformanceMonitor
           bounds={(refresh) => isNarrow ? [30, 55] : [55, refresh > 90 ? 90 : 60]}
           // Просадка FPS — снижаем нагрузку ступенями, без резкого «прыжка»
-          onDecline={() => setQuality((q) => Math.max(0.25, q - 0.25))}
-          onIncline={() => setQuality((q) => Math.min(1, q + 0.1))}
-          onFallback={() => setQuality(0.25)}
+          onDecline={() => { if (!frozen) setQuality((q) => Math.max(0.25, q - 0.25)); }}
+          onIncline={() => { if (!frozen) setQuality((q) => Math.min(1, q + 0.1)); }}
+          onFallback={() => { if (!frozen) setQuality(0.25); }}
           flipflops={3}
         >
           <Rig />

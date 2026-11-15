@@ -6,6 +6,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { pointerState } from "@/lib/store";
 import { worldState } from "@/scene/timeline";
 import { asciiSources } from "@/scene/ascii-sources";
+import { diagnosticFrame, sceneTime } from "@/scene/diagnostics";
 
 const nodeVertex = /* glsl */ `
   attribute vec3 aColor;
@@ -122,8 +123,8 @@ export function Constellations({ count }: { count: number }) {
   // Позиция курсора в мире — чтобы узлы тянулись к нему
   const pointerWorld = useRef(new THREE.Vector3(0, 0, -10));
   const projected = useRef(new THREE.Vector3());
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
+  useFrame(diagnosticFrame("Constellations", (state) => {
+    const t = sceneTime(state.clock.elapsedTime);
     const cam = state.camera;
 
     // Точка на плоскости z = -10 в мировых координатах с учётом камеры
@@ -216,7 +217,7 @@ export function Constellations({ count }: { count: number }) {
       }
       asciiSources.nodeCount = nodes;
     }
-  });
+  }));
 
   return (
     <group ref={group} position={[0, -22, -10]}>

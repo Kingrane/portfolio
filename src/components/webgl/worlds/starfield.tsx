@@ -6,6 +6,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { worldState } from "@/scene/timeline";
 import { hashString, mulberry32 } from "@/lib/ascii";
 import { pointerState } from "@/lib/store";
+import { diagnosticFrame, frozen, sceneTime } from "@/scene/diagnostics";
 
 const STAR_COUNT = 4200;
 
@@ -116,15 +117,15 @@ export function Starfield({ count = STAR_COUNT }: { count?: number }) {
   // sampling. Keep geometry/material and the same camera/point-size uniforms.
   useEffect(() => { points.current?.layers.set(1); }, []);
 
-  useFrame((state, delta) => {
+  useFrame(diagnosticFrame("Starfield", (state, delta) => {
     if (!mat.current) return;
-    mat.current.uniforms.uTime.value = state.clock.elapsedTime;
+    mat.current.uniforms.uTime.value = sceneTime(state.clock.elapsedTime);
     mat.current.uniforms.uOpacity.value = worldState.stars;
     const pointer = mat.current.uniforms.uPointer.value as THREE.Vector2;
-    const ease = 1 - Math.exp(-2.6 * Math.min(delta, 0.05));
+    const ease = frozen ? 1 : 1 - Math.exp(-2.6 * Math.min(delta, 0.05));
     pointer.x += ((pointerState.inside ? pointerState.nx : 0) - pointer.x) * ease;
     pointer.y += ((pointerState.inside ? pointerState.ny : 0) - pointer.y) * ease;
-  });
+  }));
 
   return (
     <points ref={points} geometry={geometry} frustumCulled={false}>

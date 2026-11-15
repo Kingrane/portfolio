@@ -8,6 +8,7 @@
 
 import { clearAsciiInteractions, installAsciiInteractions, recordAsciiPointer } from "@/scene/interaction";
 import { clearAsciiEmitters, setAsciiEmitter } from "@/scene/ascii-sources";
+import { eventTime } from "@/scene/diagnostics";
 
 export interface PointerState {
   /** Пиксели от левого верхнего угла окна */
@@ -65,7 +66,7 @@ export function installInstrumentation(): () => void {
     pointerState.nx = (e.clientX / w) * 2 - 1;
     pointerState.ny = -((e.clientY / h) * 2 - 1);
     pointerState.inside = true;
-    if (!reduce.matches && !document.hidden) recordAsciiPointer(e.clientX, e.clientY, performance.now() * 0.001);
+    if (!reduce.matches && !document.hidden) recordAsciiPointer(e.clientX, e.clientY, eventTime());
     if (!reduce.matches && !document.hidden) setAsciiEmitter(0, e.clientX, e.clientY, 56, 1);
   };
   const onPointerDown = (e: PointerEvent) => {
@@ -100,7 +101,7 @@ export function installInstrumentation(): () => void {
       pointerState.nx = (t.clientX / w) * 2 - 1;
       pointerState.ny = -((t.clientY / h) * 2 - 1);
       pointerState.inside = true;
-       if (!reduce.matches && !document.hidden) recordAsciiPointer(t.clientX, t.clientY, performance.now() * 0.001);
+       if (!reduce.matches && !document.hidden) recordAsciiPointer(t.clientX, t.clientY, eventTime());
        if (!reduce.matches && !document.hidden) setAsciiEmitter(0, t.clientX, t.clientY, 56, 1);
   };
   window.addEventListener("touchmove", onTouchMove, { passive: true });

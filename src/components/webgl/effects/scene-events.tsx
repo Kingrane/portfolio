@@ -6,18 +6,20 @@ import { asciiEvents } from "@/scene/ascii-events";
 import { setAsciiEmitter } from "@/scene/ascii-sources";
 import { worldState } from "@/scene/timeline";
 import { gardenState } from "@/scene/garden-state";
+import { diagnosticFrame, eventTime, frozen } from "@/scene/diagnostics";
 
 /** Slot 7 is the horizontal scan; slots 3–6 are temporary flower landings. */
 export function SceneEvents() {
   const nextScan = useRef(0);
   useEffect(() => {
-    nextScan.current = performance.now() * 0.001 + 9;
+    nextScan.current = eventTime() + 9;
     asciiEvents.scanBorn = -1000;
     asciiEvents.flowerBorn.fill(-1000);
     const scan = (event: PointerEvent) => {
+      if (frozen) return;
       if (worldState.hole < 0.4 || document.hidden) return;
       if ((event.target as Element | null)?.closest("a,button,input,select,textarea,[role='button'],[data-tune-panel]")) return;
-      const now = performance.now() * 0.001;
+      const now = eventTime();
       if (now - asciiEvents.scanBorn < 9) return;
       asciiEvents.scanBorn = now;
       nextScan.current = now + 9;
@@ -29,10 +31,10 @@ export function SceneEvents() {
       for (let i = 3; i < 7; i++) setAsciiEmitter(i, 0, 0, 0, 0);
     };
   }, []);
-  useFrame((state) => {
+  useFrame(diagnosticFrame("SceneEvents", (state) => {
     if (document.hidden) return;
-    const now = performance.now() * 0.001;
-    if (worldState.hole > 0.4 && now >= nextScan.current) {
+    const now = eventTime();
+    if (!frozen && worldState.hole > 0.4 && now >= nextScan.current) {
       asciiEvents.scanBorn = now;
       nextScan.current = now + 9;
     }
@@ -45,6 +47,6 @@ export function SceneEvents() {
       const strength = age >= 0 && age < 2.8 ? Math.min(1, (2.8 - age) / 0.8) * worldState.flowers : 0;
       setAsciiEmitter(3 + i, gardenState.screenAnchors[i * 2], gardenState.screenAnchors[i * 2 + 1], state.size.width <= 768 ? 42 : 68, strength);
     }
-  });
+  }));
   return null;
 }
