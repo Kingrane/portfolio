@@ -7,31 +7,25 @@ import styles from "./project-cover.module.css";
 const RAMP = " ·.:-=+*#%@";
 const PALETTE = ["#f2efff", "#ffc777", "#cabbff"];
 
-// At most one visible cover is drawn per browser frame. Two wide featured
-// covers keep their 30 fps ceiling without landing on the same WebGL frame.
-type CoverAnimation = { next: number; update: (now: number) => void };
-const animations = new Set<CoverAnimation>();
+// One-shot static renders, staggered across frames. Nothing runs when empty.
+const pendingCovers = new Set<() => void>();
 let coverFrame = 0;
-function animateCovers(now: number) {
+function renderNextCover() {
   coverFrame = 0;
-  let due: CoverAnimation | undefined;
-  for (const animation of animations) {
-    if (animation.next <= now && (!due || animation.next < due.next)) due = animation;
+  const draw = pendingCovers.values().next().value;
+  if (draw) {
+    pendingCovers.delete(draw);
+    draw();
   }
-  if (due) {
-    due.next = now + 1000 / 30;
-    due.update(now);
-  }
-  if (animations.size) coverFrame = requestAnimationFrame(animateCovers);
+  if (pendingCovers.size && !coverFrame) coverFrame = requestAnimationFrame(renderNextCover);
 }
-function startCover(animation: CoverAnimation) {
-  animation.next = 0;
-  animations.add(animation);
-  if (!coverFrame) coverFrame = requestAnimationFrame(animateCovers);
+function scheduleCover(draw: () => void) {
+  pendingCovers.add(draw);
+  if (!coverFrame) coverFrame = requestAnimationFrame(renderNextCover);
 }
-function stopCover(animation: CoverAnimation) {
-  animations.delete(animation);
-  if (!animations.size) {
+function cancelCover(draw: () => void) {
+  pendingCovers.delete(draw);
+  if (!pendingCovers.size) {
     cancelAnimationFrame(coverFrame);
     coverFrame = 0;
   }
@@ -513,8 +507,6 @@ const SCENES: Record<string, Scene> = {
   "cmd-ai": drawTerminal,
 };
 
-type DataConnection = EventTarget & { readonly saveData?: boolean };
-
 export function ProjectCover({ project }: { project: Project }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -525,40 +517,29 @@ export function ProjectCover({ project }: { project: Project }) {
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
     const cover = canvas.parentElement;
-    const host = canvas.closest("article");
     const atlas = document.createElement("canvas");
     const atlasCtx = atlas.getContext("2d", { alpha: false });
-    if (!cover || !host || !atlasCtx) return;
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const connection = (navigator as Navigator & { connection?: DataConnection }).connection;
+    if (!cover || !atlasCtx) return;
     const fontFamily = getComputedStyle(canvas).fontFamily;
     let field: AsciiField;
-    let painted: Uint8Array;
     let tileWidth = 0, tileHeight = 0;
-    let lastFrame = 0, lastScroll = -Infinity, time = 0;
-    let pointerX = 0, pointerY = 0;
-    let visible = false, disposed = false, ready = false;
-    let bounds: DOMRect | null = null;
-
-    const isStatic = () => motion.matches || Boolean(connection?.saveData);
+    let visible = false, disposed = false, ready = false, fontsReady = false;
 
     const draw = () => {
-      if (disposed || !field) return;
+      if (disposed || !field || !visible || document.hidden || ready) return;
       field.clear();
-      const still = isStatic();
-      scene(field, still ? 0 : time, still ? 0 : pointerX, still ? 0 : pointerY);
+      // Keep the detailed scene, frozen at its neutral frame on every device.
+      scene(field, 0, 0, 0);
+      ctx.fillStyle = "#050507";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       for (let row = 0; row < field.rows; row++) {
         for (let col = 0; col < field.cols; col++) {
           const index = row * field.cols + col;
           const light = field.light[index];
+          if (light < 0.065) continue;
           const dither = (BAYER[(row % 8) * 8 + col % 8] / 64 - 0.5) * 0.13;
-          const glyph = light < 0.065 ? 0 : Math.min(RAMP.length - 1, Math.max(1, Math.floor((light + dither) * (RAMP.length - 1))));
-          const tone = glyph ? field.tone[index] : 0;
-          const tile = tone * RAMP.length + glyph;
-          if (painted[index] === tile) continue;
-          painted[index] = tile;
-          // Opaque atlas tiles also erase vanished glyphs. Unchanged cells and
-          // dark background need neither a clear nor another drawImage call.
+          const glyph = Math.min(RAMP.length - 1, Math.max(1, Math.floor((light + dither) * (RAMP.length - 1))));
+          const tone = field.tone[index];
           ctx.drawImage(atlas, glyph * tileWidth, tone * tileHeight, tileWidth, tileHeight, col * tileWidth, row * tileHeight, tileWidth, tileHeight);
         }
       }
@@ -568,33 +549,14 @@ export function ProjectCover({ project }: { project: Project }) {
       }
     };
 
-    const stop = () => {
-      stopCover(animation);
-      lastFrame = 0;
-    };
-
-    const tick = (now: number) => {
-      if (disposed || !visible || document.hidden || isStatic()) return;
-      // Keep the already painted preview during scrolling, leaving time for
-      // the persistent world and layout; resume quietly after the last event.
-      if (now - lastScroll < 100) { lastFrame = 0; return; }
-      if (lastFrame) time += Math.min((now - lastFrame) / 1000, 0.08);
-      lastFrame = now;
-      draw();
-    };
-    const animation: CoverAnimation = { next: 0, update: tick };
-
     const sync = () => {
-      stop();
-      if (disposed || !visible || document.hidden) return;
-      if (isStatic()) {
-        time = pointerX = pointerY = 0;
-        draw();
-      } else startCover(animation);
+      cancelCover(draw);
+      if (disposed || !field || !visible || document.hidden || ready) return;
+      scheduleCover(draw);
     };
 
     const resize = () => {
-      if (disposed) return;
+      if (disposed || !fontsReady) return;
       const width = cover.clientWidth;
       const height = cover.clientHeight;
       if (!width || !height) return;
@@ -607,12 +569,10 @@ export function ProjectCover({ project }: { project: Project }) {
       tileWidth = Math.max(1, Math.round(width * dpr / cols));
       tileHeight = Math.max(1, Math.round(height * dpr / rows));
       if (field?.cols === cols && field.rows === rows && canvas.width === tileWidth * cols && canvas.height === tileHeight * rows) return;
-      stop();
-      bounds = null;
+      cancelCover(draw);
       ready = false;
       cover.removeAttribute("data-ready");
       field = new AsciiField(cols, rows);
-      painted = new Uint8Array(cols * rows).fill(255);
       canvas.width = tileWidth * cols;
       canvas.height = tileHeight * rows;
       atlas.width = tileWidth * RAMP.length;
@@ -630,60 +590,32 @@ export function ProjectCover({ project }: { project: Project }) {
           atlasCtx.fillText(RAMP[glyph], (glyph + 0.5) * tileWidth, (tone + 0.51) * tileHeight);
         }
       }
-      // HTML already supplies an immediate poster. Offscreen covers do not
-      // render scenes at mount; their first visible frame is scheduled too.
+      // The HTML poster remains until this size's only detailed frame is ready.
       sync();
     };
 
-    const move = (event: PointerEvent) => {
-      if (isStatic() || !visible || document.hidden) return;
-      bounds ??= cover.getBoundingClientRect();
-      pointerX = Math.max(-1, Math.min(1, (event.clientX - bounds.left) / bounds.width * 2 - 1));
-      pointerY = Math.max(-1, Math.min(1, (event.clientY - bounds.top) / bounds.height * 2 - 1));
-    };
-    const resetPointer = () => {
-      pointerX = pointerY = 0;
-      bounds = null;
-    };
-    const onScroll = () => { lastScroll = performance.now(); resetPointer(); };
-
-    resize();
     const intersection = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting && entry.intersectionRatio > 0;
-      if (!visible) resetPointer();
       sync();
     }, { threshold: [0, 0.02], rootMargin: "0px" });
     intersection.observe(cover);
     const observer = new ResizeObserver(resize);
     observer.observe(cover);
-    host.addEventListener("pointermove", move, { passive: true });
-    host.addEventListener("pointerdown", move, { passive: true });
-    host.addEventListener("pointerleave", resetPointer);
-    host.addEventListener("pointercancel", resetPointer);
-    host.addEventListener("pointerup", resetPointer);
-    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     window.addEventListener("resize", resize);
-    window.addEventListener("blur", resetPointer);
     document.addEventListener("visibilitychange", sync);
-    motion.addEventListener("change", sync);
-    connection?.addEventListener("change", sync);
+    void document.fonts.ready.then(() => {
+      if (disposed) return;
+      fontsReady = true;
+      resize();
+    });
 
     return () => {
       disposed = true;
-      stop();
+      cancelCover(draw);
       intersection.disconnect();
       observer.disconnect();
-      host.removeEventListener("pointermove", move);
-      host.removeEventListener("pointerdown", move);
-      host.removeEventListener("pointerleave", resetPointer);
-      host.removeEventListener("pointercancel", resetPointer);
-      host.removeEventListener("pointerup", resetPointer);
-      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("blur", resetPointer);
       document.removeEventListener("visibilitychange", sync);
-      motion.removeEventListener("change", sync);
-      connection?.removeEventListener("change", sync);
       cover.removeAttribute("data-ready");
       atlas.width = atlas.height = 0;
     };
