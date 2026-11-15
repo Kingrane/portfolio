@@ -17,7 +17,8 @@
   content: "";
   pointer-events: none;
   background: linear-gradient(90deg, rgb(5 5 7 / 96%) 0%, rgb(5 5 7 / 88%) 68%, transparent 100%);
-  mask-image: linear-gradient(transparent, #000 4rem, #000 calc(100% - 7rem), transparent);
+  /* Open only the empty bottom padding, never the project reading field. */
+  mask-image: linear-gradient(transparent, #000 4rem, #000 calc(100% - 7rem), rgb(0 0 0 / 45%) calc(100% - 5rem), transparent calc(100% - 1rem));
 }
 
 .link {

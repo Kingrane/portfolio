@@ -85,12 +85,14 @@ export const flowerVertex = /* glsl */ `
   ${gardenVertex}
   attribute vec4 aPetal;
   attribute vec3 aColor;
+  uniform float uNarrow;
   varying vec2 vUv;
   varying vec3 vColor;
   varying vec3 vViewPosition;
   varying float vProtection;
   varying float vHighlight;
   varying float vDepth;
+  varying float vFringe;
 
   void main() {
     float t = uv.y;
@@ -112,6 +114,8 @@ export const flowerVertex = /* glsl */ `
     vProtection = aProtection;
     vHighlight = projectHighlight();
     vDepth = smoothstep(8.0, 24.0, -mv.z);
+    vFringe = (1.0 - step(-0.5, aProjectIndex))
+      * (1.0 - smoothstep(-0.3, 0.2, aFlower.x)) * (1.0 - uNarrow);
   }
 `;
 
@@ -129,12 +133,14 @@ export const flowerFragment = /* glsl */ `
   varying float vProtection;
   varying float vHighlight;
   varying float vDepth;
+  varying float vFringe;
 
   void main() {
     vec3 n = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
     vec3 eye = normalize(-vViewPosition);
     if (dot(n, eye) < 0.0) n = -n;
     float moon = max(dot(n, normalize(vec3(0.45, 0.78, -0.55))), 0.0);
+    float fringeMoon = max(dot(n, normalize(vec3(-0.45, 0.62, 0.64))), 0.0);
     float warm = fireflyLight(vViewPosition, n);
     float edge = smoothstep(0.68, 1.0, abs(vUv.x * 2.0 - 1.0));
     float fresnel = pow(1.0 - abs(dot(n, eye)), 2.0);
@@ -142,7 +148,8 @@ export const flowerFragment = /* glsl */ `
       + sin(vUv.y * 5.0) * 0.45), 10.0);
     vec3 color = mix(uThroat, vColor, smoothstep(0.0, 0.48, vUv.y));
     color = mix(color, uTip, smoothstep(0.46, 1.0, vUv.y) * 0.25);
-    color *= (0.24 + moon * 0.18 + warm * 0.72) * (1.0 - vein * 0.17);
+    color *= (0.24 + moon * 0.18 + warm * 0.72
+      + vFringe * (0.10 + fringeMoon * 0.16)) * (1.0 - vein * 0.17);
     // Violet flowers have an amber beard, not a generic glowing polygon.
     float beard = (1.0 - smoothstep(0.14, 0.42, vUv.y))
       * (1.0 - smoothstep(0.05, 0.19, abs(vUv.x - 0.5)))
@@ -150,6 +157,9 @@ export const flowerFragment = /* glsl */ `
     color = mix(color, uBeard * (0.72 + warm * 0.45), beard * 0.62);
     // Cool moon transmission reveals the cup; amber comes from real flies.
     color += vec3(0.36, 0.42, 0.76) * (edge * 0.085 + fresnel * 0.22) * (0.5 + moon);
+    // Only the low left petals catch this faint night fill; stems stay dark.
+    color += vFringe * (vColor * 0.045 * smoothstep(0.1, 0.8, vUv.y)
+      + vec3(0.36, 0.42, 0.76) * (edge * 0.035 + fresnel * 0.07));
     color += uBeard * warm * (edge * 0.12 + fresnel * 0.24);
     color += mix(vColor, uBeard, 0.35) * vHighlight * (0.38 + fresnel * 0.85 + edge * 0.35);
     color *= (1.0 - vDepth * 0.34) * (1.0 - vProtection * 0.72);

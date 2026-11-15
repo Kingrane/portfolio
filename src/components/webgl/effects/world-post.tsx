@@ -31,6 +31,7 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
     height: number;
     dpr: number;
     dither: Uniform<number>;
+    heroDim: Uniform<number>;
     nodes: CanvasTexture;
     paint: CanvasRenderingContext2D;
     stamp: HTMLCanvasElement;
@@ -100,11 +101,13 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
       uniforms: new Map(Object.entries(reading)),
     });
     const dither = new Uniform(sceneTuning.dither);
+    const heroDim = new Uniform(0.1);
     const output = new Effect("DisplayDither", outputFragment, {
       blendFunction: BlendFunction.SRC,
       uniforms: new Map([
         ...Object.entries(reading),
         ["uDither", dither],
+        ["uHeroDim", heroDim],
         ["uDebugFull", ascii.uniforms.get("uDebugFull")!],
         ["uWorld", ascii.uniforms.get("uWorld")!],
         ["uHole", ascii.uniforms.get("uHole")!],
@@ -123,7 +126,7 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
     // These effects do not sample inputBuffer: insertion order survives merging.
     composer.addPass(new EffectPass(camera, tone, contrast, output));
     pipeline.current = {
-      composer, ascii, reading, width: 0, height: 0, dpr: 0, dither, nodes,
+      composer, ascii, reading, width: 0, height: 0, dpr: 0, dither, heroDim, nodes,
       paint, stamp, lastNodes: -1, nodeCount: 0, exposed: new Float64Array(5).fill(NaN),
       garden, empty, clearColor: new Color(), stars,
       aura, auraPaint, lastAura: -1, auraActive: false,
@@ -168,6 +171,9 @@ export function WorldPost({ cell, quality = 1 }: { cell: number; quality?: numbe
     current.ascii.setInteractions(interactionState, now);
     current.ascii.setTuning(narrow);
     const dive = worldState.dive;
+    // Display-only shade leaves HTML and the physical integrator untouched;
+    // it dissolves with the dive rather than following us into later worlds.
+    current.heroDim.value = 0.1 * worldState.hole * (1 - dive);
     current.ascii.uniforms.get("uHole")!.value.fromArray(asciiSources.holeBounds);
     current.ascii.uniforms.get("uQuality")!.value = quality;
     current.ascii.uniforms.get("uWorld")!.value.set(

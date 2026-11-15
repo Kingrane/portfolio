@@ -5,6 +5,7 @@ import { gardenMaskGLSL } from "./garden-mask";
 /** Applied AFTER tone mapping, before EffectPass's one final sRGB conversion. */
 export const outputFragment = /* glsl */ `
   uniform float uDither;
+  uniform float uHeroDim;
   uniform float uDebugFull;
   uniform vec4 uWorld;
   uniform vec4 uHole;
@@ -47,7 +48,7 @@ export const outputFragment = /* glsl */ `
     float energy = smoothstep(0.015, 0.12, max(color.r, max(color.g, color.b)));
     float grain = (ign(gl_FragCoord.xy) - 0.5) * energy / 255.0;
     float vignette = 1.0 - smoothstep(0.25, 0.78, distance(uv, vec2(0.5))) * 0.16;
-    color = max(vec3(5.0, 5.0, 7.0) / 255.0, color * vignette + grain);
+    color = max(vec3(5.0, 5.0, 7.0) / 255.0, color * vignette * (1.0 - uHeroDim) + grain);
     outputColor = vec4(toLinear(clamp(color, 0.0, 1.0)), 1.0);
   }
 `;

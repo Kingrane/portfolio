@@ -1,0 +1,19 @@
+{
+  "workflowRun": 43732453088,
+  "commit": "ddb2d5a41a2c50fa117a81d5054102dace5b99ef",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/Kingrane/portfolio/actions/runs/43732453088",
+  "jobs": [
+    { "name": "build", "status": "completed", "conclusion": "success" },
+    { "name": "deploy", "status": "completed", "conclusion": "success" }
+  ],
+  "publicPage": {
+    "url": "https://kingrane.github.io/portfolio/",
+    "status": 200,
+    "hasV3ProjectCount": true,
+    "hasV3Stack": true,
+    "hasApprovedBobik": true
+  },
+  "scope": "Publication verification via GitHub API and HTTP only; not visual/runtime QA and not verification of subsequent redesign refinements."
+}
