@@ -1,0 +1,38 @@
+[
+  {
+    "fallback": "reduced-motion",
+    "canvases": 0,
+    "filters": 7,
+    "before": 13,
+    "filtered": 7,
+    "menu": "focus/escape/lock/anchor passed",
+    "errors": []
+  },
+  {
+    "fallback": "save-data",
+    "canvases": 0,
+    "filters": 7,
+    "before": 13,
+    "filtered": 7,
+    "menu": "focus/escape/lock/anchor passed",
+    "errors": []
+  },
+  {
+    "fallback": "no-webgl",
+    "canvases": 0,
+    "filters": 7,
+    "before": 13,
+    "filtered": 7,
+    "menu": "focus/escape/lock/anchor passed",
+    "errors": []
+  },
+  {
+    "fallback": "touch",
+    "canvases": 1,
+    "filters": 7,
+    "before": 13,
+    "filtered": 7,
+    "menu": "focus/escape/lock/anchor passed",
+    "errors": []
+  }
+]

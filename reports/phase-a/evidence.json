@@ -1,0 +1,283 @@
+{
+  "date": "2026-11-15T12:14:06.975Z",
+  "url": "http://127.0.0.1:4173/portfolio/",
+  "browser": {
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "version": "157.0.8103.52"
+  },
+  "counts": {
+    "checkpoints": 55,
+    "screenshots": 22,
+    "geometryFailures": 0,
+    "contrastSamples": 530,
+    "contrastFailures": 0,
+    "unsupportedContrast": 0,
+    "suspectedWorldSeams": 0,
+    "textOrLayoutSpikes": 0,
+    "runtimeErrors": 0
+  },
+  "minimumSampledContrast": 6.459048497607379,
+  "contrastMethod": "Computed text fill + cumulative opacity over sampled sRGB pixels from a separate text-transparent screenshot. HTML marquee tracks pause during bounds/capture to prevent icons moving into stale text ranges; WebGL remains live. Strict sampled minimum >=4.5; p05 diagnostic only. Adjacent world captures are not the same animation instant.",
+  "seamMethod": "Continuous time-based scroll; decoded full-resolution RGB mean absolute difference /255. Full = composited viewport; canvas = locator screenshot with overlapping HTML hidden, DOM boxes preserved. Adaptive global AND local median/MAD thresholds reject smooth changes in scene activity. Canvas spikes are suspects, not proof; HTML-only spikes do not certify a world seam.",
+  "geometryMethod": "All 10% checkpoints at 375/390/768/1440/1920. Natural vertical viewport crossings are not clipping. Reachable overflow:auto/scroll strips and requested cycling marquee edge labels are reported separately; marquee containers must fit the viewport and no vertical clipping is waived. aria-hidden, disabled and invisible text excluded.",
+  "seams": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "sampling": {
+        "distinctPositions": 81,
+        "startProgress": 0.002686108979278588,
+        "endProgress": 1,
+        "maxGap": 0.014773599386032234,
+        "medianGap": 0.01266308518802763,
+        "adequate": true
+      },
+      "frames": 81,
+      "canvasBaseline": {
+        "median": 0.000002578068264342774,
+        "medianAbsoluteDeviation": 0.0000025170459130154116,
+        "threshold": 0.00392156862745098
+      },
+      "largestDeltas": [
+        {
+          "frame": 6,
+          "progress": 0.07789716039907905,
+          "scrollY": 406,
+          "elapsedMs": 2399.400000002235,
+          "scrollStep": 71,
+          "fullMad": 0.10026996691680788,
+          "canvasMad": 0.06767356067941581,
+          "textBoundaryChanges": [
+            "stack-languages",
+            "stack-tools"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.1722365696941822,
+          "canvasLocalThreshold": 0.0789171234067619
+        },
+        {
+          "frame": 7,
+          "progress": 0.09017651573292403,
+          "scrollY": 470,
+          "elapsedMs": 2242.300000000745,
+          "scrollStep": 64,
+          "fullMad": 0.09056637214556605,
+          "canvasMad": 0.05523648430565642,
+          "textBoundaryChanges": [],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.21497568992717658,
+          "canvasLocalThreshold": 0.10454125433450334
+        },
+        {
+          "frame": 5,
+          "progress": 0.06427475057559479,
+          "scrollY": 335,
+          "elapsedMs": 2294,
+          "scrollStep": 63,
+          "fullMad": 0.08207474683288954,
+          "canvasMad": 0.044272881868796896,
+          "textBoundaryChanges": [
+            "reading-4",
+            "stack-languages"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.15225008775114984,
+          "canvasLocalThreshold": 0.06258229450697973
+        },
+        {
+          "frame": 8,
+          "progress": 0.10283960092095165,
+          "scrollY": 536,
+          "elapsedMs": 2331.5,
+          "scrollStep": 66,
+          "fullMad": 0.05387225752440894,
+          "canvasMad": 0.017682216775599127,
+          "textBoundaryChanges": [
+            "stack-tools"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.17899584220850479,
+          "canvasLocalThreshold": 0.07648148081537964
+        },
+        {
+          "frame": 3,
+          "progress": 0.04067536454336147,
+          "scrollY": 212,
+          "elapsedMs": 2457.199999999255,
+          "scrollStep": 69,
+          "fullMad": 0.05075002925038328,
+          "canvasMad": 0.014840821431453238,
+          "textBoundaryChanges": [
+            "reading-5"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.16772684882595013,
+          "canvasLocalThreshold": 0.09117121030501088
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "sampling": {
+        "distinctPositions": 81,
+        "startProgress": 0.002147651006711409,
+        "endProgress": 1,
+        "maxGap": 0.015302013422818792,
+        "medianGap": 0.0125503355704698,
+        "adequate": true
+      },
+      "frames": 81,
+      "canvasBaseline": {
+        "median": 0,
+        "medianAbsoluteDeviation": 0,
+        "threshold": 0.00392156862745098
+      },
+      "largestDeltas": [
+        {
+          "frame": 1,
+          "progress": 0.014899328859060403,
+          "scrollY": 111,
+          "elapsedMs": 1129.4000000022352,
+          "scrollStep": 95,
+          "fullMad": 0.04931124343446618,
+          "canvasMad": 0.028587289333037866,
+          "textBoundaryChanges": [],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.16609245399460063,
+          "canvasLocalThreshold": 0.08924196230134616
+        },
+        {
+          "frame": 2,
+          "progress": 0.02644295302013423,
+          "scrollY": 197,
+          "elapsedMs": 1013.1999999992549,
+          "scrollStep": 86,
+          "fullMad": 0.06569300584494339,
+          "canvasMad": 0.02667305249964854,
+          "textBoundaryChanges": [
+            "reading-5"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.14717342897786165,
+          "canvasLocalThreshold": 0.09854910227975826
+        },
+        {
+          "frame": 4,
+          "progress": 0.05221476510067114,
+          "scrollY": 389,
+          "elapsedMs": 1174.699999999255,
+          "scrollStep": 99,
+          "fullMad": 0.06107956716125102,
+          "canvasMad": 0.022089267432172367,
+          "textBoundaryChanges": [
+            "stack-languages",
+            "reading-4",
+            "stack-tools"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.14717342897786165,
+          "canvasLocalThreshold": 0.03269837578482602
+        },
+        {
+          "frame": 5,
+          "progress": 0.06416107382550336,
+          "scrollY": 478,
+          "elapsedMs": 1044.8999999985099,
+          "scrollStep": 89,
+          "fullMad": 0.055364151331533544,
+          "canvasMad": 0.01874852367325186,
+          "textBoundaryChanges": [
+            "stack-tools"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.14758788264363953,
+          "canvasLocalThreshold": 0.02752894847570008
+        },
+        {
+          "frame": 3,
+          "progress": 0.038926174496644296,
+          "scrollY": 290,
+          "elapsedMs": 1101.1000000014901,
+          "scrollStep": 93,
+          "fullMad": 0.04880437588410825,
+          "canvasMad": 0.0059598208789733735,
+          "textBoundaryChanges": [
+            "reading-5",
+            "stack-languages"
+          ],
+          "fullSpike": false,
+          "canvasSpike": false,
+          "classification": "typical",
+          "fullLocalThreshold": 0.1539975439784534,
+          "canvasLocalThreshold": 0.10627024747644426
+        }
+      ]
+    }
+  ],
+  "performance": {
+    "lighthouse": "not-run",
+    "fps": "not-measured",
+    "cls": "not-measured"
+  },
+  "smoke": [
+    {
+      "fallback": "reduced-motion",
+      "canvases": 0,
+      "filters": 7,
+      "before": 13,
+      "filtered": 7,
+      "menu": "focus/escape/lock/anchor passed",
+      "errors": []
+    },
+    {
+      "fallback": "save-data",
+      "canvases": 0,
+      "filters": 7,
+      "before": 13,
+      "filtered": 7,
+      "menu": "focus/escape/lock/anchor passed",
+      "errors": []
+    },
+    {
+      "fallback": "no-webgl",
+      "canvases": 0,
+      "filters": 7,
+      "before": 13,
+      "filtered": 7,
+      "menu": "focus/escape/lock/anchor passed",
+      "errors": []
+    },
+    {
+      "fallback": "touch",
+      "canvases": 1,
+      "filters": 7,
+      "before": 13,
+      "filtered": 7,
+      "menu": "focus/escape/lock/anchor passed",
+      "errors": []
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+.item {
+  transform: perspective(500px) rotateX(var(--stack-rx, 0deg)) rotateY(var(--stack-ry, 0deg)) translateY(var(--stack-lift, 0px));
+  transition: transform 180ms ease, color 180ms ease;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none) {
+  .item { transform: none; }
+}

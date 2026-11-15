@@ -1,0 +1,67 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import { useMediaQuery } from "@/lib/use-media-query";
+import { ScenePoster } from "./scene-poster";
+import { SceneTuner } from "./scene-tuner";
+
+/**
+ * Ленивая загрузка сцены.
+ *
+ * ssr: false обязателен — three.js трогает window при инициализации.
+ * Загрузка стартует не сразу, а после первой отрисовки текста: LCP не должен
+ * ждать ни байты бандла, ни видеокарту.
+ */
+const Scene = dynamic(() => import("./scene"), { ssr: false });
+
+type Support = "unknown" | "yes" | "no";
+
+function detectWebGL(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    // The physical hole uses MRT/GLSL3; WebGL1 uses the static fallback.
+    const gl = canvas.getContext("webgl2");
+    if (!gl) return false;
+    // Освобождаем контекст, он нам нужен только для проверки
+    const lose = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context");
+    lose?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function SceneRoot() {
+  const [support, setSupport] = useState<Support>("unknown");
+  const reduce = useMediaQuery("(prefers-reduced-motion: reduce)");
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (reduce || connection?.saveData || !detectWebGL()) {
+      return;
+    }
+
+    // Даём браузеру сначала отрисовать HTML (LCP), потом грузим 3D
+    type IdleWindow = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const w = window as IdleWindow;
+
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(() => setSupport("yes"), { timeout: 2500 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(() => setSupport("yes"), 700);
+    return () => window.clearTimeout(id);
+  }, [reduce]);
+
+  return (
+    <>
+      {support !== "yes" || reduce ? <ScenePoster /> : null}
+      {support === "yes" && !reduce ? <Scene /> : null}
+      <SceneTuner />
+    </>
+  );
+}
