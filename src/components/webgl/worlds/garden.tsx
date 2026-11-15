@@ -151,7 +151,7 @@ function uploadProtections(attributes: THREE.InstancedBufferAttribute[]) {
 }
 
 /** All GPU resources are created anew in the effect, including Strict Mode remounts. */
-export function Garden({ count = 75 }: { count?: number }) {
+export function Garden({ count = 90 }: { count?: number }) {
   const narrow = useThree((state) => state.size.width <= 768);
   const group = useRef<THREE.Group>(null);
   const resources = useRef<GardenResources | null>(null);
@@ -175,14 +175,14 @@ export function Garden({ count = 75 }: { count?: number }) {
       const halfHeight = depth * HALF_FOV;
       const species = i % SPECIES.length;
       const spec = SPECIES[species];
-      // Keep the four guides on the right; two low plants per five spread
+      // Keep the four guides on the right; three low plants per five spread
       // across the whole width, with stable positions at either quality level.
-      const rightField = featured || (!narrow && (i - 4) % 5 >= 2);
+      const rightField = featured || (!narrow && (i - 4) % 5 >= 3);
       const normalizedX = featured ? (narrow ? MOBILE_FEATURED_X[i] : FEATURED_X[i])
         : narrow ? (rand() - 0.5) * 2.02 : rightField ? 0.43 + rand() * 0.64
-          : -1.03 + ((Math.floor((i - 4) / 5) * 0.61803398875 + (i - 4) % 5 * 0.5 + rand() * 0.08) % 1) * 2.06;
+          : -1.03 + ((Math.floor((i - 4) / 5) * 0.61803398875 + (i - 4) % 5 / 3 + rand() * 0.08) % 1) * 2.06;
       const heightRatio = featured ? (narrow ? MOBILE_FEATURED_HEIGHT[i] : FEATURED_HEIGHT[i])
-        : narrow ? 0.14 + rand() * 0.22 : rightField ? 0.34 + Math.pow(rand(), 0.75) * 0.93 : 0.22 + rand() * 0.17;
+        : narrow ? 0.14 + rand() * 0.22 : rightField ? 0.34 + Math.pow(rand(), 0.75) * 0.93 : 0.20 + rand() * 0.13;
       const flower: Flower = {
         x: normalizedX * halfHeight,
         z: -depth,
@@ -191,7 +191,7 @@ export function Garden({ count = 75 }: { count?: number }) {
         ground: GARDEN_GROUND_OFFSET - halfHeight * (1.08 + rand() * 0.035),
         height: heightRatio * halfHeight,
         radius: narrow ? (featured ? 0.3 : 0.2) + rand() * 0.085
-          : featured ? 0.7 + rand() * 0.07 : !rightField ? 0.26 + rand() * 0.1
+          : featured ? 0.7 + rand() * 0.07 : !rightField ? 0.32 + rand() * 0.13
             : depth < 11 ? 0.64 + rand() * 0.15 : depth < 17 ? 0.43 + rand() * 0.12 : 0.28 + rand() * 0.08,
         phase: rand() * Math.PI * 2,
         // XY-facing cups: no -PI/2 edge-on rotation.

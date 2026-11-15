@@ -61,7 +61,7 @@ export default function Scene() {
   }, []);
 
   const starCount = quality >= 0.5 ? (isNarrow ? 1800 : 4200) : isNarrow ? 700 : 1600;
-  const flowerCount = quality >= 0.5 ? (isNarrow ? 22 : 75) : isNarrow ? 14 : 44;
+  const flowerCount = quality >= 0.5 ? (isNarrow ? 22 : 90) : isNarrow ? 14 : 44;
   const cell = isNarrow ? 11 : 10;
 
   return (
